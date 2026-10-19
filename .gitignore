@@ -1,0 +1,41 @@
+# Compiled outputs & Caches
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.angular/
+.sass-cache/
+
+# Dependencies
+angular-CP317Capstone-Frontend/node_modules/
+npm-debug.log
+yarn-error.log
+connect.lock
+typings/
+
+# IDEs and Editors (WebStorm / JetBrains)
+*.iml
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Testing & Diagnostics
+coverage/
+libpeerconnection.log
+testem.log
+
+# System files
+.DS_Store
+Thumbs.db
