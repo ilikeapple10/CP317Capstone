@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Cart{% endblock %}
+{% block body %}
+<h1>Shopping cart</h1>
+{% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Line total</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>${{ "%.2f"|format(item.price) }}</td>
+          <td>
+            <form method="post" action="{{ url_for('update_cart') }}">
+              <input type="hidden" name="product_id" value="{{ item.id }}">
+              <label for="qty-{{ item.id }}">Quantity for {{ item.name }}</label>
+              <input id="qty-{{ item.id }}" name="qty" type="number" min="0" max="{{ item.stock }}" value="{{ item.qty }}">
+              <button type="submit">Update</button>
+            </form>
+          </td>
+          <td>${{ "%.2f"|format(item.line) }}</td>
+          <td>{{ item.label }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="total">Subtotal ${{ "%.2f"|format(total) }}</p>
+  <p><a class="button" href="{{ url_for('checkout') }}">Proceed to checkout</a></p>
+{% else %}
+  <p>Your cart is empty.</p>
+  <p><a href="{{ url_for('search') }}">Search products</a></p>
+{% endif %}
+{% endblock %}

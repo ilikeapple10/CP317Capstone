@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Search products{% endblock %}
+{% block body %}
+<h1>Search products</h1>
+<form class="search" method="get" action="{{ url_for('search') }}">
+  <div>
+    <label for="q">Keyword</label>
+    <input id="q" name="q" value="{{ keyword }}" placeholder="headphones">
+  </div>
+  <div>
+    <label for="category">Category</label>
+    <select id="category" name="category">
+      <option value="">All categories</option>
+      {% for item in categories %}
+        <option value="{{ item }}" {% if item == category %}selected{% endif %}>{{ item }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit">Search</button>
+</form>
+{% if category and current_user and current_user.preferred_category == category and not keyword %}
+  <p class="note">Showing your saved category, {{ category }}.</p>
+{% endif %}
+{% if products %}
+  <ul class="products">
+    {% for product in products %}
+      <li>
+        <h2>{{ product.name }}</h2>
+        <p>${{ "%.2f"|format(product.price) }}</p>
+        <p>{{ stock_label(product.stock) }} ({{ product.stock }} available)</p>
+        <p>{{ product.category }}</p>
+        {% if product.stock > 0 %}
+          <form method="post" action="{{ url_for('add_to_cart') }}">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <button type="submit">Add to cart</button>
+          </form>
+        {% else %}
+          <button type="button" disabled>Out of stock</button>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No products match that search.</p>
+{% endif %}
+{% endblock %}

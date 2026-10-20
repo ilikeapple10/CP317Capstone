@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Data collection{% endblock %}
+{% block body %}
+<h1>Data collection notice</h1>
+<section class="card">
+  <p>Creating an account collects your name, email, and password.</p>
+  <ul>
+    <li>A shopper account stores a preferred category so search can open on that category.</li>
+    <li>A seller account is used to open seller screens.</li>
+    <li>The password is stored as a salted hash. It is not used for advertising.</li>
+  </ul>
+  <p>If you decline, no account is created. Search and the cart stay available.</p>
+  <form method="post" action="{{ url_for('register') }}">
+    <button type="submit" name="consent" value="accept">Accept and continue</button>
+    <button type="submit" name="consent" value="decline">Decline</button>
+  </form>
+</section>
+{% endblock %}
