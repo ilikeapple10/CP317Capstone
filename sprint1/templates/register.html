@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block body %}
+<h1>Create account</h1>
+<form class="stack" method="post" action="{{ url_for('create_account') }}">
+  <label for="name">Name</label>
+  <input id="name" name="name" required>
+
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required>
+
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" minlength="8" required>
+
+  <fieldset>
+    <legend>Account type</legend>
+    <label><input type="radio" name="role" value="shopper" checked> Shopper</label>
+    <label><input type="radio" name="role" value="seller"> Seller</label>
+  </fieldset>
+
+  <label for="preferred_category">Preferred category (shoppers)</label>
+  <select id="preferred_category" name="preferred_category">
+    <option value="">No preference</option>
+    {% for item in categories %}
+      <option value="{{ item }}">{{ item }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Create account</button>
+</form>
+{% endblock %}
