@@ -1,4 +1,4 @@
-"""Checks for the Sprint 1 stories."""
+"""Checks for the Sprint 1 stories and JSON API."""
 
 import os
 import tempfile
@@ -12,9 +12,17 @@ os.environ["SECRET_KEY"] = "test"
 import app as store  # noqa: E402
 
 
+def reset_db():
+    store.init_db()
+    db = store.connect()
+    db.execute("DELETE FROM accounts")
+    db.commit()
+    db.close()
+
+
 class Sprint1Tests(unittest.TestCase):
     def setUp(self):
-        store.init_db()
+        reset_db()
         self.client = store.app.test_client()
 
     def test_keyword_and_category_search(self):
@@ -92,6 +100,68 @@ class Sprint1Tests(unittest.TestCase):
             follow_redirects=True,
         )
         self.assertIn(b"Seller home", seller.data)
+
+
+class ApiTests(unittest.TestCase):
+    def setUp(self):
+        reset_db()
+        self.client = store.app.test_client()
+
+    def test_products_json(self):
+        response = self.client.get("/api/products?q=head&category=Electronics")
+        data = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data["products"]), 1)
+        self.assertEqual(data["products"][0]["name"], "Wireless headphones")
+        self.assertIn("In stock", data["products"][0]["label"])
+
+    def test_cart_and_consent_flow(self):
+        listed = self.client.get("/api/products").get_json()
+        headphones = next(p for p in listed["products"] if p["name"] == "Wireless headphones")
+        added = self.client.post("/api/cart/add", json={"product_id": headphones["id"]})
+        self.assertEqual(added.status_code, 200)
+        updated = self.client.post(
+            "/api/cart/update",
+            json={"product_id": headphones["id"], "qty": 2},
+        ).get_json()
+        self.assertEqual(updated["cart"]["total"], 78.0)
+
+        declined = self.client.post("/api/account/consent", json={"consent": "decline"}).get_json()
+        self.assertFalse(declined["accepted"])
+        blocked = self.client.post(
+            "/api/account",
+            json={
+                "name": "No Consent",
+                "email": "noconsent@example.com",
+                "password": "password1",
+                "role": "shopper",
+            },
+        )
+        self.assertEqual(blocked.status_code, 400)
+
+        self.client.post("/api/account/consent", json={"consent": "accept"})
+        created = self.client.post(
+            "/api/account",
+            json={
+                "name": "Jordan Shopper",
+                "email": "jordan@example.com",
+                "password": "password1",
+                "role": "shopper",
+                "preferred_category": "Home",
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        login = self.client.post(
+            "/api/login",
+            json={"email": "jordan@example.com", "password": "password1"},
+        )
+        self.assertEqual(login.status_code, 200)
+        prefs = self.client.get("/api/products").get_json()
+        names = [p["name"] for p in prefs["products"]]
+        self.assertIn("Desk lamp", names)
+        self.assertNotIn("Wireless headphones", names)
+        seller = self.client.get("/api/seller")
+        self.assertEqual(seller.status_code, 403)
 
 
 if __name__ == "__main__":
