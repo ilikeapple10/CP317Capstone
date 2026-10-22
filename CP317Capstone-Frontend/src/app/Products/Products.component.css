@@ -1,0 +1,189 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f4f6fb;
+  color: #1f2937;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #131921;
+  color: #fff;
+  padding: 14px 32px;
+}
+.brand {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-link {
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-link:hover { background: rgba(255, 255, 255, 0.12); }
+.cart-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 4px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: #131921;
+  background: #febd69;
+  border-radius: 999px;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  padding: 24px 32px;
+}
+
+.card {
+  flex: 1;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.06);
+}
+
+h1 { margin: 0; font-size: 28px; font-weight: 700; }
+.subtitle { margin: 6px 0 24px; color: #6b7280; }
+
+.controls { display: flex; gap: 12px; margin-bottom: 20px; }
+.controls select,
+.controls input {
+  height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #1f2937;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.controls select { min-width: 220px; }
+.controls input { flex: 1; }
+.controls select:focus,
+.controls input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.controls button {
+  height: 48px;
+  padding: 0 28px;
+  font-size: 16px;
+  font-family: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #2563eb;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.controls button:hover { background: #1d4ed8; }
+.controls button:active { background: #1e40af; }
+
+.count { margin: 0 0 8px; font-size: 14px; color: #6b7280; }
+
+.results {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e5e7eb;
+}
+.results th {
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+.results th:first-child { width: 60%; }
+.results td { padding: 16px 20px; border-bottom: 1px solid #f0f1f4; }
+.results tbody tr:last-child td { border-bottom: 0; }
+.results tbody tr:hover { background: #f8faff; }
+.name { font-weight: 600; font-size: 16px; }
+
+.results th.num,
+.results td.num {
+  text-align: right;
+  padding-right: 48px;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 999px;
+}
+.badge.low { color: #92400e; background: #fef3c7; }
+.badge.out { color: #991b1b; background: #fee2e2; }
+
+.product-cell { display: flex; align-items: center; gap: 16px; }
+.thumb {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+}
+.thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #e0e9ff;
+  border-color: #c7d6fe;
+  text-transform: uppercase;
+}
+.category { margin-top: 2px; font-size: 14px; color: #6b7280; }
+
+.empty { padding: 40px 16px; text-align: center; color: #6b7280; }
+.error {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  color: #991b1b;
+  background: #fee2e2;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .page { padding: 12px; }
+  .card { padding: 20px; }
+  .controls { flex-direction: column; }
+  .controls select { min-width: 0; }
+}
