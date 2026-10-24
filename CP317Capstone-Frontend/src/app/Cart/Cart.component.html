@@ -1,0 +1,68 @@
+<main class="page">
+  <section class="card">
+    <h1>Shopping Cart</h1>
+    <p class="subtitle">Review your items and change quantities before checkout.</p>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (cart.lines().length === 0) {
+      <div class="empty-cart">
+        <p>Your cart is empty.</p>
+        <a class="btn" routerLink="/">Continue shopping</a>
+      </div>
+    } @else {
+      <div class="layout">
+        <table class="results">
+          <thead>
+          <tr>
+            <th>Product</th>
+            <th class="num">Price</th>
+            <th class="center">Quantity</th>
+            <th class="num">Total</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (line of cart.lines(); track line.productId) {
+              <tr>
+                <td class="name">{{ line.name }}</td>
+                <td class="num">{{ line.price | currency }}</td>
+                <td class="center">
+                  <div class="qty">
+                    <button type="button" aria-label="Decrease quantity"
+                            (click)="change(line, -1)" [disabled]="line.qty <= 1">−</button>
+                    <span>{{ line.qty }}</span>
+                    <button type="button" aria-label="Increase quantity"
+                            (click)="change(line, 1)" [disabled]="atMax(line)">+</button>
+                  </div>
+                  @if (atMax(line)) {
+                    <div class="max">Max available</div>
+                  }
+                </td>
+                <td class="num">{{ line.price * line.qty | currency }}</td>
+                <td class="right">
+                  <button type="button" class="remove" (click)="remove(line)">Remove</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <aside class="summary">
+          <h2>Order summary</h2>
+          <div class="row">
+            <span>Items</span>
+            <span>{{ cart.count() }}</span>
+          </div>
+          <div class="row total">
+            <span>Subtotal</span>
+            <span>{{ cart.subtotal() | currency }}</span>
+          </div>
+          <button type="button" class="btn primary">Proceed to checkout</button>
+        </aside>
+      </div>
+    }
+  </section>
+</main>

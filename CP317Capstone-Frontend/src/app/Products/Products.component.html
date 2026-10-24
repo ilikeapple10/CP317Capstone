@@ -1,77 +1,72 @@
-<header class="topbar">
-  <span class="brand">shop</span>
-  <nav class="nav">
-    <button type="button" class="nav-link">Sign in</button>
-    <button type="button" class="nav-link">Orders</button>
-    <button type="button" class="nav-link cart">
-      Cart <span class="cart-count">{{ cartCount() }}</span>
-    </button>
-  </nav>
-</header>
-
 <main class="page">
-  <section class="card">
-    <h1>Product Search</h1>
-    <p class="subtitle">Find products by name or browse by category.</p>
+    <section class="card">
+        <h1>Product Search</h1>
+        <p class="subtitle">Find products by name or browse by category.</p>
 
-    <form class="controls" (submit)="apply($event, q.value, cat.value)">
-      <select #cat aria-label="Category">
-        <option value="">All categories</option>
-        @for (c of categories(); track c) {
-          <option [value]="c">{{ c }}</option>
-        }
-      </select>
-
-      <input #q type="search" placeholder="Search products" aria-label="Search products" />
-
-      <button type="submit">Apply filters</button>
-    </form>
-
-    @if (error()) {
-      <p class="error">{{ error() }}</p>
-    }
-
-    <p class="count">{{ products().length }} {{ products().length === 1 ? 'result' : 'results' }}</p>
-
-    <table class="results">
-      <thead>
-      <tr>
-        <th>Product</th>
-        <th class="num">Price</th>
-        <th>Status</th>
-      </tr>
-      </thead>
-      <tbody>
-        @for (p of products(); track p.id) {
-          <tr>
-            <td>
-              <div class="product-cell">
-                @if (hasImage(p)) {
-                  <img class="thumb" [src]="imageFor(p)" [alt]="p.name" (error)="onImageError(p)" />
-                } @else {
-                  <div class="thumb placeholder" aria-hidden="true">{{ p.name.charAt(0) }}</div>
+        <form class="controls" (submit)="apply($event, q.value, cat.value)">
+            <select #cat aria-label="Category">
+                <option value="">All categories</option>
+                @for (c of categories(); track c) {
+                    <option [value]="c">{{ c }}</option>
                 }
-                <div>
-                  <div class="name">{{ p.name }}</div>
-                  <div class="category">{{ p.category }}</div>
-                </div>
-              </div>
-            </td>
-            <td class="num">{{ p.price | currency }}</td>
-            <td>
-              <span
-                class="badge"
-                [class.low]="p.label.toLowerCase().includes('low')"
-                [class.out]="p.stock === 0"
-              >{{ p.label }}</span>
-            </td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="3" class="empty">No products found. Try a different search.</td>
-          </tr>
+            </select>
+
+            <input #q type="search" placeholder="Search products" aria-label="Search products" />
+
+            <button type="submit">Apply filters</button>
+        </form>
+
+        @if (error()) {
+            <p class="error">{{ error() }}</p>
         }
-      </tbody>
-    </table>
-  </section>
+
+        <p class="count">{{ products().length }} {{ products().length === 1 ? 'result' : 'results' }}</p>
+
+        <table class="results">
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th class="num">Price</th>
+                <th>Status</th>
+                <th class="action"></th>
+            </tr>
+            </thead>
+            <tbody>
+                @for (p of products(); track p.id) {
+                    <tr>
+                        <td>
+                            <div class="product-cell">
+                                @if (hasImage(p)) {
+                                    <img class="thumb" [src]="imageFor(p)" [alt]="p.name" (error)="onImageError(p)" />
+                                } @else {
+                                    <div class="thumb placeholder" aria-hidden="true">{{ p.name.charAt(0) }}</div>
+                                }
+                                <div>
+                                    <div class="name">{{ p.name }}</div>
+                                    <div class="category">{{ p.category }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="num">{{ p.price | currency }}</td>
+                        <td>
+              <span
+                      class="badge"
+                      [class.low]="p.label.toLowerCase().includes('low')"
+                      [class.out]="p.stock === 0"
+              >{{ p.label }}</span>
+                        </td>
+                        <td class="action">
+                            <button type="button" class="add" (click)="add(p)" [disabled]="!canAdd(p)">
+                                {{ labelFor(p) }}
+                            </button>
+                        </td>
+                    </tr>
+                } @empty {
+                    <tr>
+                        <td colspan="4" class="empty">No products found. Try a different search.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
 </main>
