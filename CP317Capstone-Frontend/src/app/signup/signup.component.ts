@@ -100,7 +100,7 @@ export class SignupComponent implements OnInit {
       email: email!,
       password: password!,
       role: 'shopper',
-      preferred_category: 'general'
+      preferred_category: '',
     };
 
     this.api.createAccount(payload).subscribe({
