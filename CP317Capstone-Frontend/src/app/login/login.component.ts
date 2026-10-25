@@ -44,7 +44,9 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.error?.message || 'Invalid email or password. Please try again.');
+        this.errorMessage.set(
+          err.error?.error || err.error?.message || 'Invalid email or password. Please try again.'
+        );
       }
     });
   }

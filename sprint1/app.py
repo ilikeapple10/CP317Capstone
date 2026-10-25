@@ -17,7 +17,18 @@ app.config["DATABASE"] = os.environ.get("DATABASE", str(BASE / "store.db"))
 
 CORS(
     app,
-    resources={r"/api/*": {"origins": ["http://localhost:4200", "http://127.0.0.1:4200"]}},
+    resources={
+        r"/api/*": {
+            "origins": [
+                "http://localhost:4200",
+                "http://127.0.0.1:4200",
+                "http://localhost:4201",
+                "http://127.0.0.1:4201",
+                "http://localhost:4202",
+                "http://127.0.0.1:4202",
+            ]
+        }
+    },
     supports_credentials=True,
 )
 
