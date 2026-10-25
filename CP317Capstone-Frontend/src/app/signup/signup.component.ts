@@ -99,7 +99,7 @@ export class SignupComponent implements OnInit {
       name: fullName!,
       email: email!,
       password: password!,
-      role: 'customer',
+      role: 'shopper',
       preferred_category: 'general'
     };
 
