@@ -20,6 +20,9 @@ export class SignupComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   showConsentModal = signal(true);
 
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
+
   signupForm = this.fb.group({
     fullName: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
@@ -28,8 +31,15 @@ export class SignupComponent implements OnInit {
   }, { validators: this.passwordMatchValidator });
 
   ngOnInit() {
-    // Show modal automatically on entering signup page
     this.showConsentModal.set(true);
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword.update(value => !value);
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword.update(value => !value);
   }
 
   onAcceptConsent() {
@@ -57,9 +67,20 @@ export class SignupComponent implements OnInit {
   private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
-    if (password && confirmPassword && password.value !== confirmPassword.value) {
+
+    if (!password || !confirmPassword) {
+      return null;
+    }
+
+    if (password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ mismatch: true });
       return { mismatch: true };
+    } else {
+      const errors = confirmPassword.errors;
+      if (errors) {
+        delete errors['mismatch'];
+        confirmPassword.setErrors(Object.keys(errors).length ? errors : null);
+      }
     }
     return null;
   }
