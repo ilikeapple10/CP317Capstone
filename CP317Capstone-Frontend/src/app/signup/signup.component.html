@@ -1,0 +1,125 @@
+<!-- Data Collection Notice Modal Overlay -->
+@if (showConsentModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card">
+      <h2 class="modal-title">Data collection notice</h2>
+      
+      <div class="modal-body">
+        <p>Creating an account collects your name, email, and password.</p>
+        <ul>
+          <li>A shopper account stores a preferred category so search can open on that category.</li>
+          <li>A seller account is used to open seller screens.</li>
+          <li>The password is stored as a salted hash. It is not used for advertising.</li>
+        </ul>
+        <p>If you decline, no account is created. Search and the cart stay available.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-accept" (click)="onAcceptConsent()">Accept</button>
+        <button type="button" class="btn-decline" (click)="onDeclineConsent()">Decline and continue as guest</button>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h2>Create Account</h2>
+      <p>Please enter your details to sign up</p>
+    </div>
+
+    <!-- Error Banner -->
+    @if (errorMessage()) {
+      <div class="error-banner">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="signupForm" #formRef="ngForm" (ngSubmit)="onSubmit()" novalidate>
+      <!-- Full Name Field -->
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input
+          type="text"
+          id="fullName"
+          formControlName="fullName"
+          placeholder="John Doe"
+          [class.is-invalid]="formRef.submitted && signupForm.get('fullName')?.invalid"
+        />
+        @if (formRef.submitted && signupForm.get('fullName')?.errors?.['required']) {
+          <small class="error-text">Full name is required.</small>
+        }
+      </div>
+
+      <!-- Email Field -->
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          [class.is-invalid]="formRef.submitted && signupForm.get('email')?.invalid"
+        />
+        @if (formRef.submitted && signupForm.get('email')?.errors?.['required']) {
+          <small class="error-text">Email is required.</small>
+        }
+        @if (formRef.submitted && signupForm.get('email')?.errors?.['email']) {
+          <small class="error-text">Please enter a valid email address.</small>
+        }
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          placeholder="••••••••"
+          [class.is-invalid]="formRef.submitted && signupForm.get('password')?.invalid"
+        />
+        @if (formRef.submitted && signupForm.get('password')?.errors?.['required']) {
+          <small class="error-text">Password is required.</small>
+        }
+        @if (formRef.submitted && signupForm.get('password')?.errors?.['minlength']) {
+          <small class="error-text">Password must be at least 6 characters long.</small>
+        }
+      </div>
+
+      <!-- Confirm Password Field -->
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          formControlName="confirmPassword"
+          placeholder="••••••••"
+          [class.is-invalid]="formRef.submitted && signupForm.get('confirmPassword')?.invalid"
+        />
+        @if (formRef.submitted && signupForm.get('confirmPassword')?.errors?.['required']) {
+          <small class="error-text">Please confirm your password.</small>
+        }
+        @if (formRef.submitted && signupForm.get('confirmPassword')?.errors?.['mismatch']) {
+          <small class="error-text">Passwords do not match.</small>
+        }
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-submit" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <span class="spinner"></span> Creating account...
+        } @else {
+          Sign Up
+        }
+      </button>
+    </form>
+
+    <!-- Navigation links -->
+    <div class="signup-link">
+      <p>Already have an account? <a routerLink="/login">login</a></p>
+      <p style="margin-top: 8px;"><a routerLink="/products">continue as guest</a></p>
+    </div>
+  </div>
+</div>

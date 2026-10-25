@@ -1,0 +1,64 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h2>Welcome Back</h2>
+      <p>Please enter your credentials to log in</p>
+    </div>
+
+    <!-- Error Banner -->
+    @if (errorMessage()) {
+      <div class="error-banner">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form [formGroup]="loginForm" #formRef="ngForm" (ngSubmit)="onSubmit()" novalidate>
+      <!-- Email Field -->
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          [class.is-invalid]="formRef.submitted && loginForm.get('email')?.invalid"
+        />
+        @if (formRef.submitted && loginForm.get('email')?.errors?.['required']) {
+          <small class="error-text">Email is required.</small>
+        }
+        @if (formRef.submitted && loginForm.get('email')?.errors?.['email']) {
+          <small class="error-text">Please enter a valid email address.</small>
+        }
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          placeholder="••••••••"
+          [class.is-invalid]="formRef.submitted && loginForm.get('password')?.invalid"
+        />
+        @if (formRef.submitted && loginForm.get('password')?.errors?.['required']) {
+          <small class="error-text">Password is required.</small>
+        }
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-submit" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <span class="spinner"></span> Logging in...
+        } @else {
+          Login
+        }
+      </button>
+    </form>
+
+    <!-- Navigation link to Signup -->
+    <div class="signup-link">
+      <p>Don't have an account? <a routerLink="/signup">Register Here</a></p>
+    </div>
+  </div>
+</div>

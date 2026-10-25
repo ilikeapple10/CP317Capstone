@@ -1,7 +1,7 @@
 <header class="topbar">
   <a class="brand" routerLink="/">shop</a>
   <nav class="nav">
-    <button type="button" class="nav-link">Sign in</button>
+    <button type="button" class="nav-link" routerLink="login">Sign in</button>
     <button type="button" class="nav-link">Orders</button>
     <a class="nav-link" routerLink="/cart">
       Cart <span class="cart-count">{{ cart.count() }}</span>
