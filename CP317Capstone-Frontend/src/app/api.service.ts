@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
-const BASE = 'http://localhost:5050';
+// Match the page hostname so session cookies work (localhost vs 127.0.0.1
+// are different sites to the browser).
+const BASE = `http://${typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'}:5050`;
 const opts = { withCredentials: true };
 
 export interface Product {
