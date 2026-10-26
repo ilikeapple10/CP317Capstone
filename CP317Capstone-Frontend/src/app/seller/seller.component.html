@@ -1,0 +1,113 @@
+<main class="page">
+  <section class="card">
+    <h1>Seller Dashboard</h1>
+    <p class="subtitle">Add items you want to sell and keep track of your listings.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Listed items</span>
+        <span class="stat-value">{{ listings().length }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Units in stock</span>
+        <span class="stat-value">{{ totalUnits() }}</span>
+      </div>
+      <div class="stat warn">
+        <span class="stat-label">Low stock</span>
+        <span class="stat-value">{{ lowStock().length }}</span>
+      </div>
+      <div class="stat bad">
+        <span class="stat-label">Out of stock</span>
+        <span class="stat-value">{{ outOfStock().length }}</span>
+      </div>
+    </div>
+
+    @if (showAlert()) {
+      <div class="alert" role="alert">
+        <div>
+          <strong>Low stock alert</strong>
+          <p>
+            Inventory is below the threshold for:
+            @for (l of lowStock(); track l.id; let last = $last) {
+              {{ l.name }} ({{ l.stock }} left){{ last ? '' : ',' }}
+            }
+          </p>
+        </div>
+        <button type="button" class="alert-dismiss" (click)="alertDismissed.set(true)">Dismiss</button>
+      </div>
+    }
+
+    <div class="layout">
+      <form class="form" #f (submit)="add($event, f, n.value, c.value, p.value, s.value)">
+        <h2>Add an item</h2>
+
+        <label for="item-name">Item name</label>
+        <input id="item-name" #n type="text" placeholder="e.g. Ceramic planter" />
+
+        <label for="item-category">Category</label>
+        <select id="item-category" #c>
+          <option value="">Choose a category</option>
+          @for (cat of categories; track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+
+        <div class="two">
+          <div>
+            <label for="item-price">Price ($)</label>
+            <input id="item-price" #p type="number" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div>
+            <label for="item-stock">Stock</label>
+            <input id="item-stock" #s type="number" min="0" step="1" placeholder="0" />
+          </div>
+        </div>
+
+        @if (formError()) {
+          <p class="error">{{ formError() }}</p>
+        }
+
+        <button type="submit" class="primary">Add item</button>
+      </form>
+
+      <div class="listings">
+        <h2>Your listings</h2>
+        <table class="results">
+          <thead>
+          <tr>
+            <th>Item</th>
+            <th class="num">Price</th>
+            <th class="num">Stock</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (l of listings(); track l.id) {
+              <tr>
+                <td>
+                  <div class="name">{{ l.name }}</div>
+                  <div class="category">{{ l.category }}</div>
+                </td>
+                <td class="num">{{ l.price | currency }}</td>
+                <td class="num">{{ l.stock }}</td>
+                <td>
+                  <span class="badge" [class.low]="l.stock > 0 && l.stock < 5" [class.out]="l.stock === 0">
+                    {{ labelOf(l) }}
+                  </span>
+                </td>
+                <td class="right">
+                  <button type="button" class="remove" (click)="remove(l.id)">Remove</button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty">No listings yet. Add your first item.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
