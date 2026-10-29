@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'cart', component: CartComponent },
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
+  // shortcut: no auth guard, any user can access /seller; add role-based guard before Sprint 2 launch
   { path: 'seller', component: SellerComponent },
 
 ];
