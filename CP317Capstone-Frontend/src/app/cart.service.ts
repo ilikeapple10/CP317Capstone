@@ -37,6 +37,9 @@ export class CartService {
   remove(productId: number) {
     return this.api.removeFromCart(productId).pipe(tap((res) => this.apply(res)));
   }
+  checkout() {
+    return this.api.placeOrder().pipe(tap(() => this.lines.set([])));
+  }
 
   qtyOf(productId: number): number {
     return this.lines().find((l) => l.productId === productId)?.qty ?? 0;

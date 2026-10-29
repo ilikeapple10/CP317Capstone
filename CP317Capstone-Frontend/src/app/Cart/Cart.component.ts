@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { CartService, CartLine } from '../cart.service';
 
@@ -13,6 +13,7 @@ import { CartService, CartLine } from '../cart.service';
 })
 export class CartComponent {
   cart = inject(CartService);
+  private router = inject(Router);
   error = signal('');
 
   atMax(line: CartLine) {
@@ -28,6 +29,16 @@ export class CartComponent {
 
   remove(line: CartLine) {
     this.run(this.cart.remove(line.productId));
+  }
+
+  placeOrder() {
+    this.cart.checkout().subscribe({
+      next: () => { this.error.set(''); this.router.navigate(['/orders']); },
+      error: (e: any) => {
+        if (e?.status === 401) this.router.navigate(['/login']);
+        else this.error.set(this.cart.errorMessage(e));
+      },
+    });
   }
 
   private run(request: Observable<unknown>) {

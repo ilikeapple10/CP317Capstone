@@ -60,7 +60,7 @@
             <span>Subtotal</span>
             <span>{{ cart.subtotal() | currency }}</span>
           </div>
-          <button type="button" class="btn primary">Proceed to checkout</button>
+          <button type="button" class="btn primary" (click)="placeOrder()">Proceed to checkout</button>
         </aside>
       </div>
     }

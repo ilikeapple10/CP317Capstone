@@ -66,6 +66,12 @@ export class ApiService {
   me() {
     return this.http.get(`${BASE}/api/me`, opts);
   }
+  placeOrder() {
+    return this.http.post<{ order_id: number; total: number }>(`${BASE}/api/orders`, {}, opts);
+  }
+  getOrders() {
+    return this.http.get<{ orders: any[] }>(`${BASE}/api/orders`, opts);
+  }
   seller() {
     return this.http.get(`${BASE}/api/seller`, opts);
   }

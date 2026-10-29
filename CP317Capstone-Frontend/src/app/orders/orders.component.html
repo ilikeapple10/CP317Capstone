@@ -1,0 +1,47 @@
+<main class="page">
+  <section class="card">
+    <h1>Your Orders</h1>
+    <p class="subtitle">Your order history.</p>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (orders().length === 0 && !error()) {
+      <div class="empty">
+        <p>No orders yet.</p>
+        <a class="btn" routerLink="/">Start shopping</a>
+      </div>
+    }
+
+    @for (order of orders(); track order.id) {
+      <div class="order">
+        <div class="order-header">
+          <span class="order-id">Order #{{ order.id }}</span>
+          <span class="order-date">{{ order.placed_at | date:'medium' }}</span>
+          <span class="order-total">{{ order.total | currency }}</span>
+        </div>
+        <table class="results">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="num">Price</th>
+              <th class="num">Qty</th>
+              <th class="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of order.items; track item.id) {
+              <tr>
+                <td>{{ item.name }}</td>
+                <td class="num">{{ item.price | currency }}</td>
+                <td class="num">{{ item.qty }}</td>
+                <td class="num">{{ item.price * item.qty | currency }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

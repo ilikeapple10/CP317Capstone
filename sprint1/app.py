@@ -80,6 +80,20 @@ def init_db():
             role TEXT NOT NULL,
             preferred_category TEXT
         );
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY,
+            account_id INTEGER NOT NULL,
+            total REAL NOT NULL,
+            placed_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY,
+            order_id INTEGER NOT NULL REFERENCES orders(id),
+            product_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            qty INTEGER NOT NULL
+        );
         """
     )
     try:
@@ -536,6 +550,70 @@ def api_logout():
 @app.get("/api/me")
 def api_me():
     return jsonify({"user": user_dict(session.get("user")), "consent": session.get("consent")})
+
+
+@app.post("/api/orders")
+def api_place_order():
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to place an order."}), 401
+    cart = session.get("cart", {})
+    if not cart:
+        return jsonify({"error": "Your cart is empty."}), 400
+    db = get_db()
+    items = []
+    for product_id, qty in cart.items():
+        qty = int(qty)
+        product = db.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
+        if product is None:
+            continue
+        if product["stock"] < qty:
+            return jsonify({"error": f"Only {product['stock']} of '{product['name']}' in stock."}), 400
+        items.append({"product": product, "qty": qty})
+    if not items:
+        return jsonify({"error": "Your cart is empty."}), 400
+    total = round(sum(i["product"]["price"] * i["qty"] for i in items), 2)
+    cursor = db.execute(
+        "INSERT INTO orders (account_id, total) VALUES (?, ?)", (user["id"], total)
+    )
+    order_id = cursor.lastrowid
+    for i in items:
+        db.execute(
+            "INSERT INTO order_items (order_id, product_id, name, price, qty) VALUES (?, ?, ?, ?, ?)",
+            (order_id, i["product"]["id"], i["product"]["name"], i["product"]["price"], i["qty"]),
+        )
+        db.execute(
+            "UPDATE products SET stock = stock - ? WHERE id = ?", (i["qty"], i["product"]["id"])
+        )
+    db.commit()
+    session["cart"] = {}
+    return jsonify({"order_id": order_id, "total": total}), 201
+
+
+@app.get("/api/orders")
+def api_orders():
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to view orders."}), 401
+    db = get_db()
+    order_rows = db.execute(
+        "SELECT * FROM orders WHERE account_id = ? ORDER BY placed_at DESC", (user["id"],)
+    ).fetchall()
+    orders = []
+    for o in order_rows:
+        item_rows = db.execute(
+            "SELECT * FROM order_items WHERE order_id = ?", (o["id"],)
+        ).fetchall()
+        orders.append({
+            "id": o["id"],
+            "total": o["total"],
+            "placed_at": o["placed_at"],
+            "items": [
+                {"id": i["id"], "name": i["name"], "price": i["price"], "qty": i["qty"]}
+                for i in item_rows
+            ],
+        })
+    return jsonify({"orders": orders})
 
 
 @app.get("/api/seller")
