@@ -69,4 +69,13 @@ export class ApiService {
   seller() {
     return this.http.get(`${BASE}/api/seller`, opts);
   }
+  getSellerListings() {
+    return this.http.get<{ listings: any[] }>(`${BASE}/api/seller/listings`, opts);
+  }
+  addSellerListing(data: { name: string; category: string; price: number; stock: number }) {
+    return this.http.post<{ listing: any }>(`${BASE}/api/seller/listings`, data, opts);
+  }
+  removeSellerListing(id: number) {
+    return this.http.delete(`${BASE}/api/seller/listings/${id}`, opts);
+  }
 }

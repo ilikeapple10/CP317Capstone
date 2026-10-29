@@ -82,6 +82,11 @@ def init_db():
         );
         """
     )
+    try:
+        db.execute("ALTER TABLE products ADD COLUMN seller_id INTEGER")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
     count = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     if count == 0:
         db.executemany(
@@ -538,12 +543,59 @@ def api_seller():
     user = session.get("user")
     if not user or user.get("role") != "seller":
         return jsonify({"error": "Seller features require a seller account."}), 403
-    return jsonify(
-        {
-            "user": user_dict(user),
-            "message": "Seller home. Listing, order updates, and reports are later sprint stories.",
-        }
+    return jsonify({"user": user_dict(user)})
+
+
+@app.get("/api/seller/listings")
+def api_seller_listings():
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    rows = get_db().execute(
+        "SELECT * FROM products WHERE seller_id = ? ORDER BY name", (user["id"],)
+    ).fetchall()
+    return jsonify({"listings": [product_dict(row) for row in rows]})
+
+
+@app.post("/api/seller/listings")
+def api_seller_add_listing():
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    data = request_data()
+    name = str(data.get("name", "")).strip()
+    category = str(data.get("category", "")).strip()
+    try:
+        price = float(data.get("price"))
+        stock = int(data.get("stock"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid price or stock."}), 400
+    if not name or not category or price <= 0 or stock < 0:
+        return jsonify({"error": "Enter a name, a category, a price above 0, and a whole-number stock."}), 400
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO products (name, category, price, stock, seller_id) VALUES (?, ?, ?, ?, ?)",
+        (name, category, round(price, 2), stock, user["id"]),
     )
+    db.commit()
+    row = db.execute("SELECT * FROM products WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return jsonify({"listing": product_dict(row)}), 201
+
+
+@app.delete("/api/seller/listings/<int:product_id>")
+def api_seller_remove_listing(product_id):
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    db = get_db()
+    row = db.execute(
+        "SELECT id FROM products WHERE id = ? AND seller_id = ?", (product_id, user["id"])
+    ).fetchone()
+    if row is None:
+        return jsonify({"error": "Listing not found."}), 404
+    db.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    db.commit()
+    return jsonify({"ok": True})
 
 
 init_db()

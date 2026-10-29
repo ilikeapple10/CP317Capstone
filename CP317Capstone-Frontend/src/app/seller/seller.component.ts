@@ -1,5 +1,6 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { ApiService } from '../api.service';
 
 interface Listing {
   id: number;
@@ -16,25 +17,25 @@ interface Listing {
   templateUrl: './seller.component.html',
   styleUrl: './seller.component.css',
 })
-export class SellerComponent {
+export class SellerComponent implements OnInit {
+  private api = inject(ApiService);
   categories = ['Electronics', 'Home', 'Apparel'];
 
-  // TODO: replace with user's actual listings from backend. (Sprint 2)
-  listings = signal<Listing[]>([
-    { id: 1, name: 'Ceramic planter', category: 'Home', price: 18.0, stock: 24 },
-    { id: 2, name: 'Bluetooth speaker', category: 'Electronics', price: 45.0, stock: 3 },
-    { id: 3, name: 'Wool scarf', category: 'Apparel', price: 29.0, stock: 0 },
-    { id: 4, name: 'Desk organizer', category: 'Home', price: 22.0, stock: 9 },
-  ]);
-
+  listings = signal<Listing[]>([]);
   formError = signal('');
   alertDismissed = signal(false);
-  private nextId = 100;
 
   lowStock = computed(() => this.listings().filter((l) => l.stock > 0 && l.stock < 5));
   outOfStock = computed(() => this.listings().filter((l) => l.stock === 0));
   totalUnits = computed(() => this.listings().reduce((n, l) => n + l.stock, 0));
   showAlert = computed(() => !this.alertDismissed() && this.lowStock().length > 0);
+
+  ngOnInit() {
+    this.api.getSellerListings().subscribe({
+      next: (res) => this.listings.set(res.listings),
+      error: () => this.formError.set('Could not load listings.'),
+    });
+  }
 
   labelOf(l: Listing) {
     if (l.stock <= 0) return 'Out of stock';
@@ -42,7 +43,6 @@ export class SellerComponent {
     return 'In stock';
   }
 
-  // TODO: send to the backend instead of only updating page. (Sprint 2)
   add(event: Event, form: HTMLFormElement, name: string, category: string, price: string, stock: string) {
     event.preventDefault();
     const p = Number(price);
@@ -52,15 +52,19 @@ export class SellerComponent {
       return;
     }
     this.formError.set('');
-    this.listings.update((list) => [
-      { id: this.nextId++, name: name.trim(), category, price: p, stock: s },
-      ...list,
-    ]);
-    form.reset();
+    this.api.addSellerListing({ name: name.trim(), category, price: p, stock: s }).subscribe({
+      next: (res) => {
+        this.listings.update((list) => [res.listing, ...list]);
+        form.reset();
+      },
+      error: (err: any) => this.formError.set(err.error?.error ?? 'Could not add listing.'),
+    });
   }
 
-  // TODO: this is a placeholder function. need to integrate backend. (Sprint 2)
   remove(id: number) {
-    this.listings.update((list) => list.filter((l) => l.id !== id));
+    this.api.removeSellerListing(id).subscribe({
+      next: () => this.listings.update((list) => list.filter((l) => l.id !== id)),
+      error: () => this.formError.set('Could not remove listing.'),
+    });
   }
 }
