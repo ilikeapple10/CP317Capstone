@@ -26,8 +26,8 @@
 <div class="login-container">
   <div class="login-card">
     <div class="login-header">
-      <h2>Create Account</h2>
-      <p>Please enter your details to sign up</p>
+      <h1>Create an account</h1>
+      <p>Save a wish list and see your order history.</p>
     </div>
 
     <!-- Error Banner -->
@@ -45,7 +45,6 @@
           type="text"
           id="fullName"
           formControlName="fullName"
-          placeholder="John Doe"
           [class.is-invalid]="formRef.submitted && signupForm.get('fullName')?.invalid"
         />
         @if (formRef.submitted && signupForm.get('fullName')?.errors?.['required']) {
@@ -60,7 +59,6 @@
           type="email"
           id="email"
           formControlName="email"
-          placeholder="you@example.com"
           [class.is-invalid]="formRef.submitted && signupForm.get('email')?.invalid"
         />
         @if (formRef.submitted && signupForm.get('email')?.errors?.['required']) {
@@ -79,7 +77,6 @@
             [type]="showPassword() ? 'text' : 'password'"
             id="password"
             formControlName="password"
-            placeholder="••••••••"
             [class.is-invalid]="formRef.submitted && signupForm.get('password')?.invalid"
           />
           <button type="button" class="toggle-password-btn" (click)="togglePasswordVisibility()">
@@ -106,7 +103,6 @@
             [type]="showConfirmPassword() ? 'text' : 'password'"
             id="confirmPassword"
             formControlName="confirmPassword"
-            placeholder="••••••••"
             [class.is-invalid]="formRef.submitted && signupForm.get('confirmPassword')?.invalid"
           />
           <button type="button" class="toggle-password-btn" (click)="toggleConfirmPasswordVisibility()">
@@ -125,6 +121,15 @@
         }
       </div>
 
+      <!-- Account Type Field -->
+      <div class="form-group">
+        <label for="role">Account type</label>
+        <select id="role" formControlName="role">
+          <option value="shopper">Shopper: buy items</option>
+          <option value="seller">Seller: list items for sale</option>
+        </select>
+      </div>
+
       <!-- Submit Button -->
       <button type="submit" class="btn-submit" [disabled]="isLoading()">
         @if (isLoading()) {
@@ -137,7 +142,7 @@
 
     <!-- Navigation links -->
     <div class="signup-link">
-      <p>Already have an account? <a routerLink="/login">login</a></p>
+      <p>Already have an account? <a routerLink="/login">Sign in</a></p>
       <p style="margin-top: 8px;"><a routerLink="/">continue as guest</a></p>
     </div>
   </div>

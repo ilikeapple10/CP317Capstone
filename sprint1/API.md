@@ -28,7 +28,17 @@ python3 app.py
 | POST | `/api/login` | email, password | signed-in user |
 | POST | `/api/logout` | | `{ ok: true }` |
 | GET | `/api/me` | | current user and consent |
-| GET | `/api/seller` | | seller home, or 403 if not a seller |
+| GET | `/api/seller` | | seller user and `low_stock_alerts`, or 403 if not a seller |
+| POST | `/api/seller/alerts` | `{ "enabled": true }` | saves the low-stock alert opt-in |
+| GET | `/api/seller/listings` | | the seller's own listings |
+| POST | `/api/seller/listings` | name, category, price, stock, description, image_url (optional, http/https) | new listing |
+| DELETE | `/api/seller/listings/<id>` | | removes the seller's listing |
+| POST | `/api/orders` | name, email, address, card_number (16 digits), expiry (`MM/YY`), cvv | order with `reference`; guests need consent first |
+| GET | `/api/orders` | | signed-in user's orders, or 401 |
+| POST | `/api/orders/lookup` | `{ "order_id": 1, "email": "..." }` | one order, so guests can find it later |
+| GET | `/api/wishlist` | | signed-in user's saved products, or 401 |
+| POST | `/api/wishlist` | `{ "product_id": 1 }` | saves a product |
+| DELETE | `/api/wishlist/<id>` | | removes a saved product |
 
 JSON and form bodies both work. Prefer JSON from Angular.
 
@@ -41,9 +51,16 @@ JSON and form bodies both work. Prefer JSON from Angular.
   "category": "Electronics",
   "price": 39.0,
   "stock": 12,
-  "label": "In stock"
+  "label": "In stock",
+  "description": null,
+  "image_url": null
 }
 ```
+
+Payment is simulated. The card number is validated and never stored; the order keeps a
+confirmation `reference` instead.
+
+Starter products use a path to the frontend's own files for `image_url`, such as `assets/products/speaker.svg`.
 
 ## Angular example
 

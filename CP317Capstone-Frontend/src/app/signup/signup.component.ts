@@ -27,7 +27,8 @@ export class SignupComponent implements OnInit {
     fullName: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', [Validators.required]]
+    confirmPassword: ['', [Validators.required]],
+    role: ['shopper']
   }, { validators: this.passwordMatchValidator });
 
   ngOnInit() {
@@ -93,13 +94,13 @@ export class SignupComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    const { fullName, email, password } = this.signupForm.value;
+    const { fullName, email, password, role } = this.signupForm.value;
 
     const payload = {
       name: fullName!,
       email: email!,
       password: password!,
-      role: 'shopper',
+      role: role!,
       preferred_category: '',
     };
 

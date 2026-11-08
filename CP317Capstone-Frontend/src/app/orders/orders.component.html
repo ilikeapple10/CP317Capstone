@@ -1,14 +1,25 @@
 <main class="page">
   <section class="card">
-    <h1>Your Orders</h1>
-    <p class="subtitle">Your order history.</p>
+    <h1>Orders</h1>
+    @if (loading()) {
+      <p class="subtitle">Loading…</p>
+    } @else if (guest()) {
+      <p class="subtitle">Checked out as a guest? Enter your order number and email. <a routerLink="/login">Sign in</a> to see your full history.</p>
+      <form class="lookup" #lf (submit)="lookup($event, oid.value, em.value)">
+        <label>Order number <input #oid type="number" min="1" /></label>
+        <label>Email used at checkout <input #em type="email" /></label>
+        <button type="submit" class="primary">Find order</button>
+      </form>
+    } @else {
+      <p class="subtitle">Your order history.</p>
+    }
 
     @if (error()) {
       <p class="error">{{ error() }}</p>
     }
 
-    @if (orders().length === 0 && !error()) {
-      <div class="empty">
+    @if (orders().length === 0 && !error() && !guest() && !loading()) {
+      <div class="empty panel">
         <p>No orders yet.</p>
         <a class="btn" routerLink="/">Start shopping</a>
       </div>
@@ -19,9 +30,12 @@
         <div class="order-header">
           <span class="order-id">Order #{{ order.id }}</span>
           <span class="order-date">{{ order.placed_at | date:'medium' }}</span>
-          <span class="order-total">{{ order.total | currency }}</span>
+          @if (order.reference) {
+            <span class="order-date">Ref {{ order.reference }}</span>
+          }
+          <span class="order-total money">{{ order.total | currency }}</span>
         </div>
-        <table class="results">
+        <div class="panel"><table class="results">
           <thead>
             <tr>
               <th>Item</th>
@@ -40,7 +54,7 @@
               </tr>
             }
           </tbody>
-        </table>
+        </table></div>
       </div>
     }
   </section>

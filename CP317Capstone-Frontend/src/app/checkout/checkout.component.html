@@ -1,0 +1,106 @@
+<main class="page">
+  <section class="card">
+    @if (placed(); as order) {
+      <div class="confirmation panel" role="status">
+        <h1>Order confirmed</h1>
+        <p class="subtitle">Thank you! Your payment was approved (simulated).</p>
+        <dl>
+          <dt>Order number</dt><dd>#{{ order.id }}</dd>
+          <dt>Confirmation reference</dt><dd>{{ order.reference }}</dd>
+          <dt>Total</dt><dd>{{ order.total | currency }}</dd>
+          <dt>Ships to</dt><dd>{{ order.shipping_address }}</dd>
+        </dl>
+        @if (user()) {
+          <a class="btn-link" routerLink="/orders">View your orders</a>
+        } @else {
+          <p>Keep your order number. You can open this order later on the Orders page with it and {{ order.email }}.</p>
+          <a class="btn-link" routerLink="/orders">Look up an order</a>
+        }
+      </div>
+    } @else {
+      <h1>Checkout</h1>
+      @if (!ready() || !cart.loaded()) {
+        <p class="subtitle">Loading…</p>
+      } @else {
+      <p class="subtitle">
+        {{ user() ? 'Signed in as ' + user().name + '.' : 'Checking out as a guest. No account needed.' }}
+      </p>
+
+      @if (error() && (needsConsent() || cart.lines().length === 0)) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      @if (needsConsent()) {
+        <div class="notice panel">
+          <h2>Data collection notice</h2>
+          <p>To place an order we collect your name, email, and shipping address.</p>
+          <ul>
+            <li>They are used only to fulfil this order and to let you look it up later.</li>
+            <li>Payment is simulated. Your card number is checked and never stored.</li>
+          </ul>
+          <p>If you decline, you can keep browsing and using your cart.</p>
+          @if (declined()) {
+            <p class="error">You declined, so checkout is unavailable. You can accept at any time.</p>
+          }
+          <div class="notice-actions">
+            <button type="button" class="primary" (click)="consent('accept')">Accept and continue</button>
+            <button type="button" class="alert-dismiss" (click)="consent('decline')">Decline</button>
+          </div>
+        </div>
+      } @else if (cart.lines().length === 0) {
+        <p class="empty">Your cart is empty. <a routerLink="/">Continue shopping</a></p>
+      } @else {
+        <div class="layout">
+          <form class="form panel" #f (submit)="submit($event, f)">
+            <h2>Shipping</h2>
+            <label for="co-name">Full name</label>
+            <input id="co-name" name="name" type="text" autocomplete="name" [value]="user()?.name ?? ''" />
+            <label for="co-email">Email</label>
+            <input id="co-email" name="email" type="email" autocomplete="email" [value]="user()?.email ?? ''" />
+            <label for="co-address">Shipping address</label>
+            <input id="co-address" name="address" type="text" autocomplete="street-address" />
+
+            <h2 class="spaced">Payment</h2>
+            <label for="co-card">Card number</label>
+            <input id="co-card" name="card_number" type="text" inputmode="numeric" autocomplete="off" aria-describedby="co-card-hint" />
+            <div id="co-card-hint" class="category">16 digits. Payment is simulated; nothing is charged.</div>
+            <div class="two">
+              <div>
+                <label for="co-expiry">Expiry (MM/YY)</label>
+                <input id="co-expiry" name="expiry" type="text" />
+              </div>
+              <div>
+                <label for="co-cvv">CVV</label>
+                <input id="co-cvv" name="cvv" type="text" inputmode="numeric" />
+              </div>
+            </div>
+
+            @if (error()) {
+              <p class="error">{{ error() }}</p>
+            }
+            <button type="submit" class="primary" [disabled]="placing()">Place order · {{ cart.subtotal() | currency }}</button>
+          </form>
+
+          <div class="panel">
+            <h2 class="panel-title">Order summary</h2>
+            <table class="results">
+              <tbody>
+                @for (line of cart.lines(); track line.productId) {
+                  <tr>
+                    <td class="name">{{ line.name }} × {{ line.qty }}</td>
+                    <td class="num">{{ line.price * line.qty | currency }}</td>
+                  </tr>
+                }
+                <tr>
+                  <td class="name">Subtotal</td>
+                  <td class="num money">{{ cart.subtotal() | currency }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+      }
+    }
+  </section>
+</main>

@@ -1,45 +1,34 @@
-:host { display: block; }
+:host { display: block; position: sticky; top: 0; z-index: 10; background: var(--ground); border-bottom: 1px solid var(--border); }
 
-.topbar {
+.bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #131921;
-  color: #fff;
-  padding: 14px 32px;
+  gap: 16px;
+  max-width: var(--column);
+  height: 48px;
+  margin: 0 auto;
+  padding: 0 var(--pad);
 }
-.brand {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #fff;
-  text-decoration: none;
-}
-.nav { display: flex; align-items: center; gap: 8px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; text-decoration: none; }
+.mark { flex: none; }
+.nav { display: flex; align-items: center; gap: 4px; overflow-x: auto; }
 .nav-link {
-  display: inline-block;
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 15px;
+  padding: 6px 10px;
   font-weight: 500;
-  color: #fff;
+  white-space: nowrap;
   text-decoration: none;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
+  color: var(--muted);
+  border-radius: var(--radius-control);
 }
-.nav-link:hover { background: rgba(255, 255, 255, 0.12); }
-.cart-count {
-  display: inline-block;
-  min-width: 20px;
-  margin-left: 4px;
-  padding: 1px 7px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  color: #131921;
-  background: #febd69;
-  border-radius: 999px;
+.nav-link:hover { color: var(--text); background: var(--raised); }
+.nav-link.active { color: var(--text); }
+.sign-out { font: inherit; font-weight: 500; background: none; border: 0; cursor: pointer; }
+.cart-count { margin-left: 2px; color: var(--text); }
+
+/* Phone: the links take their own full-width row so Cart is never scrolled out of sight. */
+@media (max-width: 640px) {
+  .bar { flex-wrap: wrap; height: auto; padding: 8px 16px 4px; gap: 4px; }
+  .nav { width: 100%; justify-content: space-between; overflow: visible; margin: 0 -8px; width: calc(100% + 16px); }
+  .nav-link { padding: 8px; font-size: 13px; }
 }

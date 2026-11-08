@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { tap } from 'rxjs';
-import { ApiService } from './api.service';
+import { ApiService, CheckoutDetails } from './api.service';
 
 export interface CartLine {
   productId: number;
@@ -15,6 +15,8 @@ export class CartService {
   private api = inject(ApiService);
 
   lines = signal<CartLine[]>([]);
+  // False until the first answer, so an empty cart is not shown while the real one loads.
+  loaded = signal(false);
 
   count = computed(() => this.lines().reduce((n, l) => n + l.qty, 0));
 
@@ -23,7 +25,7 @@ export class CartService {
   );
 
   refresh() {
-    this.api.getCart().subscribe({ next: (res) => this.apply(res), error: () => {} });
+    this.api.getCart().subscribe({ next: (res) => this.apply(res), error: () => this.loaded.set(true) });
   }
 
   add(productId: number) {
@@ -37,8 +39,8 @@ export class CartService {
   remove(productId: number) {
     return this.api.removeFromCart(productId).pipe(tap((res) => this.apply(res)));
   }
-  checkout() {
-    return this.api.placeOrder().pipe(tap(() => this.lines.set([])));
+  checkout(details: CheckoutDetails) {
+    return this.api.placeOrder(details).pipe(tap(() => this.lines.set([])));
   }
 
   qtyOf(productId: number): number {
@@ -54,6 +56,7 @@ export class CartService {
 
   // GET /api/Cart returns the Cart directly; add/update/remove return { message, Cart }.
   private apply(res: any) {
+    this.loaded.set(true);
     const cart = res?.cart ?? res;
     const items: any[] = Array.isArray(cart?.items) ? cart.items : [];
     this.lines.set(

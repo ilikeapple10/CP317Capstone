@@ -9,7 +9,7 @@ import { ApiService } from '../api.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrl: '../signup/signup.component.css'
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
@@ -40,7 +40,7 @@ export class LoginComponent {
     this.api.login(email!, password!).subscribe({
       next: (res) => {
         this.isLoading.set(false);
-        this.router.navigate(['']);
+        this.router.navigate([res.user?.role === 'seller' ? '/seller' : '']);
       },
       error: (err) => {
         this.isLoading.set(false);

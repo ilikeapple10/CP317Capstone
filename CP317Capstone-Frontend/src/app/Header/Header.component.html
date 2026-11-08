@@ -1,11 +1,28 @@
 <header class="topbar">
-  <a class="brand" routerLink="/">shop</a>
-  <nav class="nav">
-    <a class="nav-link" routerLink="/login">Sign in</a>
-    <a class="nav-link" routerLink="/seller">Sell</a>
-    <a class="nav-link" routerLink="/orders">Orders</a>
-    <a class="nav-link" routerLink="/cart">
-      Cart <span class="cart-count">{{ cart.count() }}</span>
+  <div class="bar">
+    <a class="brand" routerLink="/" aria-label="G49 shop, home">
+      <!-- The mark: a shop bag drawn from the name's object. -->
+      <svg class="mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <path d="M4 7h14l-1 12H5L4 7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+        <path d="M8 9V6a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+      <span>G49 shop</span>
     </a>
-  </nav>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Products</a>
+      <a class="nav-link" routerLink="/wishlist" routerLinkActive="active">Wish list</a>
+      <a class="nav-link" routerLink="/orders" routerLinkActive="active">Orders</a>
+      @if (user()?.role !== 'shopper') {
+        <a class="nav-link" routerLink="/seller" routerLinkActive="active">Sell</a>
+      }
+      @if (user()) {
+        <button type="button" class="nav-link sign-out" (click)="signOut()">Sign out</button>
+      } @else {
+        <a class="nav-link" routerLink="/login" routerLinkActive="active">Sign in</a>
+      }
+      <a class="nav-link cart" routerLink="/cart" routerLinkActive="active">
+        Cart <span class="cart-count num">{{ cart.count() }}</span>
+      </a>
+    </nav>
+  </div>
 </header>

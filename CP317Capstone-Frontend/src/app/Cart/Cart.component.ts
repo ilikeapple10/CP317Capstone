@@ -1,6 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { CartService, CartLine } from '../cart.service';
 
@@ -11,10 +11,13 @@ import { CartService, CartLine } from '../cart.service';
   templateUrl: './Cart.component.html',
   styleUrl: './Cart.component.css',
 })
-export class CartComponent {
+export class CartComponent implements OnInit {
   cart = inject(CartService);
-  private router = inject(Router);
   error = signal('');
+
+  ngOnInit() {
+    this.cart.refresh();
+  }
 
   atMax(line: CartLine) {
     return line.stock !== null && line.qty >= line.stock;
@@ -23,22 +26,13 @@ export class CartComponent {
   change(line: CartLine, delta: number) {
     const next = line.qty + delta;
     if (next < 1) return;
-    if (line.stock !== null && next > line.stock) return;
+    // Only block going up: if stock fell below the quantity, the shopper must still be able to lower it.
+    if (delta > 0 && line.stock !== null && next > line.stock) return;
     this.run(this.cart.setQty(line.productId, next));
   }
 
   remove(line: CartLine) {
     this.run(this.cart.remove(line.productId));
-  }
-
-  placeOrder() {
-    this.cart.checkout().subscribe({
-      next: () => { this.error.set(''); this.router.navigate(['/orders']); },
-      error: (e: any) => {
-        if (e?.status === 401) this.router.navigate(['/login']);
-        else this.error.set(this.cart.errorMessage(e));
-      },
-    });
   }
 
   private run(request: Observable<unknown>) {

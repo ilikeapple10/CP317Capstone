@@ -1,26 +1,31 @@
 <main class="page">
   <section class="card">
-    <h1>Seller Dashboard</h1>
-    <p class="subtitle">Add items you want to sell and keep track of your listings.</p>
+    <h1>Your shop</h1>
+    <p class="subtitle">Your listings, their stock, and new items to sell.</p>
 
-    <div class="stats">
+    <div class="stats panel">
       <div class="stat">
-        <span class="stat-label">Listed items</span>
+        <span class="stat-label">Listings</span>
         <span class="stat-value">{{ listings().length }}</span>
       </div>
       <div class="stat">
         <span class="stat-label">Units in stock</span>
         <span class="stat-value">{{ totalUnits() }}</span>
       </div>
-      <div class="stat warn">
+      <div class="stat" [class.warn]="lowStock().length > 0">
         <span class="stat-label">Low stock</span>
         <span class="stat-value">{{ lowStock().length }}</span>
       </div>
-      <div class="stat bad">
+      <div class="stat" [class.bad]="outOfStock().length > 0">
         <span class="stat-label">Out of stock</span>
         <span class="stat-value">{{ outOfStock().length }}</span>
       </div>
     </div>
+
+    <label class="opt-in">
+      <input type="checkbox" [checked]="alertsOn()" (change)="setAlerts($any($event.target).checked)" />
+      Notify me when an item has fewer than 5 units left
+    </label>
 
     @if (showAlert()) {
       <div class="alert" role="alert">
@@ -38,11 +43,11 @@
     }
 
     <div class="layout">
-      <form class="form" #f (submit)="add($event, f, n.value, c.value, p.value, s.value)">
+      <form class="form panel" #f novalidate (submit)="add($event, f, n.value, c.value, p.value, s.value, d.value, img.value)">
         <h2>Add an item</h2>
 
         <label for="item-name">Item name</label>
-        <input id="item-name" #n type="text" placeholder="e.g. Ceramic planter" />
+        <input id="item-name" #n type="text" />
 
         <label for="item-category">Category</label>
         <select id="item-category" #c>
@@ -55,23 +60,30 @@
         <div class="two">
           <div>
             <label for="item-price">Price ($)</label>
-            <input id="item-price" #p type="number" min="0" step="0.01" placeholder="0.00" />
+            <input id="item-price" #p type="number" min="0" step="0.01" />
           </div>
           <div>
             <label for="item-stock">Stock</label>
-            <input id="item-stock" #s type="number" min="0" step="1" placeholder="0" />
+            <input id="item-stock" #s type="number" min="0" step="1" />
           </div>
         </div>
+
+        <label for="item-description">Description</label>
+        <textarea id="item-description" #d rows="3"></textarea>
+
+        <label for="item-image">Image link (optional)</label>
+        <input id="item-image" #img type="url" aria-describedby="item-image-hint" />
+        <div id="item-image-hint" class="category">A link starting with https://</div>
 
         @if (formError()) {
           <p class="error">{{ formError() }}</p>
         }
 
-        <button type="submit" class="primary">Add item</button>
+        <button type="submit" class="primary" [disabled]="saving()">Add item</button>
       </form>
 
-      <div class="listings">
-        <h2>Your listings</h2>
+      <div class="listings panel">
+        <h2 class="panel-title">Your listings</h2>
         <table class="results">
           <thead>
           <tr>
@@ -84,25 +96,29 @@
           </thead>
           <tbody>
             @for (l of listings(); track l.id) {
-              <tr>
+              <tr [class.pending]="l.pending">
                 <td>
                   <div class="name">{{ l.name }}</div>
                   <div class="category">{{ l.category }}</div>
                 </td>
-                <td class="num">{{ l.price | currency }}</td>
+                <td class="num money">{{ l.price | currency }}</td>
                 <td class="num">{{ l.stock }}</td>
                 <td>
+                  @if (l.pending) {
+                    <span class="badge pending">Pending validation</span>
+                  } @else {
                   <span class="badge" [class.low]="l.stock > 0 && l.stock < 5" [class.out]="l.stock === 0">
                     {{ labelOf(l) }}
                   </span>
+                  }
                 </td>
                 <td class="right">
-                  <button type="button" class="remove" (click)="remove(l.id)">Remove</button>
+                  <button type="button" class="remove" (click)="remove(l.id)" [disabled]="l.pending">Remove</button>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="empty">No listings yet. Add your first item.</td>
+                <td colspan="5" class="empty">{{ loading() ? 'Loading…' : 'No listings yet. Add your first item.' }}</td>
               </tr>
             }
           </tbody>

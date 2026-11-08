@@ -1,9 +1,11 @@
 """Sprint 1 store: HTML pages plus JSON /api routes for the Angular frontend."""
 
 import hashlib
+import math
 import os
 import secrets
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
@@ -40,6 +42,16 @@ SEED = [
     ("Coffee mug", "Home", 12.00, 30),
     ("Winter jacket", "Apparel", 89.00, 0),
 ]
+
+# Served by the Angular frontend from src/assets/products.
+SEED_IMAGES = {
+    "Wireless headphones": "assets/products/wireless-headphones.svg",
+    "Speaker": "assets/products/speaker.svg",
+    "Running shoes": "assets/products/running-shoes.svg",
+    "Desk lamp": "assets/products/desk-lamp.svg",
+    "Coffee mug": "assets/products/coffee-mug.svg",
+    "Winter jacket": "assets/products/winter-jacket.svg",
+}
 
 
 def connect():
@@ -82,7 +94,7 @@ def init_db():
         );
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
-            account_id INTEGER NOT NULL,
+            account_id INTEGER,
             total REAL NOT NULL,
             placed_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -94,18 +106,55 @@ def init_db():
             price REAL NOT NULL,
             qty INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS wishlist (
+            account_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            PRIMARY KEY (account_id, product_id)
+        );
         """
     )
-    try:
-        db.execute("ALTER TABLE products ADD COLUMN seller_id INTEGER")
-        db.commit()
-    except sqlite3.OperationalError:
-        pass  # column already exists
+    # Sprint 1 databases made orders.account_id NOT NULL; guest orders need it nullable.
+    if db.execute("SELECT \"notnull\" FROM pragma_table_info('orders') WHERE name = 'account_id'").fetchone()[0]:
+        db.executescript(
+            """
+            PRAGMA legacy_alter_table = ON;
+            ALTER TABLE orders RENAME TO orders_old;
+            CREATE TABLE orders (
+                id INTEGER PRIMARY KEY,
+                account_id INTEGER,
+                total REAL NOT NULL,
+                placed_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            INSERT INTO orders (id, account_id, total, placed_at)
+                SELECT id, account_id, total, placed_at FROM orders_old;
+            DROP TABLE orders_old;
+            PRAGMA legacy_alter_table = OFF;
+            """
+        )
+    for table, column in [
+        ("products", "seller_id INTEGER"),
+        ("products", "description TEXT"),
+        ("products", "image_url TEXT"),
+        ("accounts", "low_stock_alerts INTEGER NOT NULL DEFAULT 0"),
+        ("orders", "email TEXT"),
+        ("orders", "shipping_address TEXT"),
+        ("orders", "reference TEXT"),
+    ]:
+        try:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
+        except sqlite3.OperationalError:
+            pass  # column already exists
     count = db.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     if count == 0:
         db.executemany(
             "INSERT INTO products (name, category, price, stock) VALUES (?, ?, ?, ?)",
             SEED,
+        )
+    # Also fills in starter products from databases made before they had pictures.
+    for name, image_url in SEED_IMAGES.items():
+        db.execute(
+            "UPDATE products SET image_url = ? WHERE name = ? AND seller_id IS NULL AND image_url IS NULL",
+            (image_url, name),
         )
     db.commit()
     db.close()
@@ -140,6 +189,8 @@ def product_dict(row):
         "price": row["price"],
         "stock": row["stock"],
         "label": stock_label(row["stock"]),
+        "description": row["description"],
+        "image_url": row["image_url"],
     }
 
 
@@ -196,7 +247,8 @@ def categories():
 def request_data():
     """Read JSON body fields, or fall back to form fields."""
     if request.is_json:
-        return request.get_json(silent=True) or {}
+        data = request.get_json(silent=True)
+        return data if isinstance(data, dict) else {}
     return request.form.to_dict()
 
 
@@ -207,13 +259,19 @@ def query_products(keyword="", category="", use_preference=False):
     sql = "SELECT * FROM products WHERE 1 = 1"
     params = []
     if keyword:
-        sql += " AND name LIKE ?"
-        params.append(f"%{keyword}%")
+        sql += " AND (name LIKE ? ESCAPE '\\' OR category LIKE ? ESCAPE '\\')"
+        escaped = keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        params += [f"%{escaped}%", f"%{escaped}%"]
     if category:
         sql += " AND category = ?"
         params.append(category)
     sql += " ORDER BY name"
     return get_db().execute(sql, params).fetchall(), keyword, category
+
+
+@app.errorhandler(OverflowError)
+def number_too_large(_error):
+    return jsonify({"error": "That number is too large."}), 400
 
 
 @app.context_processor
@@ -552,11 +610,56 @@ def api_me():
     return jsonify({"user": user_dict(session.get("user")), "consent": session.get("consent")})
 
 
+def checkout_error(data, user):
+    """Validate shipping and simulated payment fields; return an error message or None."""
+    if not user and session.get("consent") != "accepted":
+        return "Accept the data notice before checking out as a guest."
+    email = str(data.get("email", "")).strip()
+    if not str(data.get("name", "")).strip() or "@" not in email:
+        return "Enter your name and a valid email."
+    if not str(data.get("address", "")).strip():
+        return "Enter a shipping address."
+    card = str(data.get("card_number", "")).replace(" ", "")
+    if not (card.isdigit() and len(card) == 16):
+        return "Card number must be 16 digits."
+    try:
+        month, year = str(data.get("expiry", "")).split("/")
+        expiry = (2000 + int(year), int(month))
+        valid_month = 1 <= expiry[1] <= 12 and 0 <= int(year) <= 99
+    except ValueError:
+        valid_month = False
+    today = date.today()
+    if not valid_month or expiry < (today.year, today.month):
+        return "Enter a future expiry date as MM/YY."
+    cvv = str(data.get("cvv", ""))
+    if not (cvv.isdigit() and len(cvv) == 3):
+        return "CVV must be 3 digits."
+    return None
+
+
+def order_dict(db, o):
+    items = db.execute("SELECT * FROM order_items WHERE order_id = ?", (o["id"],)).fetchall()
+    return {
+        "id": o["id"],
+        "total": o["total"],
+        "placed_at": o["placed_at"].replace(" ", "T") + "Z",  # SQLite stores UTC without a zone
+        "reference": o["reference"],
+        "email": o["email"],
+        "shipping_address": o["shipping_address"],
+        "items": [
+            {"id": i["id"], "name": i["name"], "price": i["price"], "qty": i["qty"]}
+            for i in items
+        ],
+    }
+
+
 @app.post("/api/orders")
 def api_place_order():
     user = session.get("user")
-    if not user:
-        return jsonify({"error": "Sign in to place an order."}), 401
+    data = request_data()
+    error = checkout_error(data, user)
+    if error:
+        return jsonify({"error": error}), 400
     cart = session.get("cart", {})
     if not cart:
         return jsonify({"error": "Your cart is empty."}), 400
@@ -567,14 +670,24 @@ def api_place_order():
         product = db.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
         if product is None:
             continue
-        if product["stock"] < qty:
-            return jsonify({"error": f"Only {product['stock']} of '{product['name']}' in stock."}), 400
         items.append({"product": product, "qty": qty})
     if not items:
         return jsonify({"error": "Your cart is empty."}), 400
     total = round(sum(i["product"]["price"] * i["qty"] for i in items), 2)
+    # Payment is simulated: keep a confirmation reference, never the card number.
+    reference = "G49-" + secrets.token_hex(4).upper()
     cursor = db.execute(
-        "INSERT INTO orders (account_id, total) VALUES (?, ?)", (user["id"], total)
+        """
+        INSERT INTO orders (account_id, total, email, shipping_address, reference)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            user["id"] if user else None,
+            total,
+            str(data["email"]).strip().lower(),
+            str(data["address"]).strip(),
+            reference,
+        ),
     )
     order_id = cursor.lastrowid
     for i in items:
@@ -582,12 +695,18 @@ def api_place_order():
             "INSERT INTO order_items (order_id, product_id, name, price, qty) VALUES (?, ?, ?, ?, ?)",
             (order_id, i["product"]["id"], i["product"]["name"], i["product"]["price"], i["qty"]),
         )
-        db.execute(
-            "UPDATE products SET stock = stock - ? WHERE id = ?", (i["qty"], i["product"]["id"])
+        # Checked in the UPDATE itself so two orders at once cannot oversell the last unit.
+        updated = db.execute(
+            "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?",
+            (i["qty"], i["product"]["id"], i["qty"]),
         )
+        if updated.rowcount == 0:
+            db.rollback()
+            return jsonify({"error": f"Not enough '{i['product']['name']}' left in stock."}), 400
     db.commit()
     session["cart"] = {}
-    return jsonify({"order_id": order_id, "total": total}), 201
+    order = db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    return jsonify({"order_id": order_id, "total": total, "order": order_dict(db, order)}), 201
 
 
 @app.get("/api/orders")
@@ -599,21 +718,21 @@ def api_orders():
     order_rows = db.execute(
         "SELECT * FROM orders WHERE account_id = ? ORDER BY placed_at DESC", (user["id"],)
     ).fetchall()
-    orders = []
-    for o in order_rows:
-        item_rows = db.execute(
-            "SELECT * FROM order_items WHERE order_id = ?", (o["id"],)
-        ).fetchall()
-        orders.append({
-            "id": o["id"],
-            "total": o["total"],
-            "placed_at": o["placed_at"],
-            "items": [
-                {"id": i["id"], "name": i["name"], "price": i["price"], "qty": i["qty"]}
-                for i in item_rows
-            ],
-        })
-    return jsonify({"orders": orders})
+    return jsonify({"orders": [order_dict(db, o) for o in order_rows]})
+
+
+@app.post("/api/orders/lookup")
+def api_order_lookup():
+    """Guests open an order later with its number and the email used at checkout."""
+    data = request_data()
+    email = str(data.get("email", "")).strip().lower()
+    db = get_db()
+    order = db.execute(
+        "SELECT * FROM orders WHERE id = ? AND email = ?", (str(data.get("order_id")), email)
+    ).fetchone()
+    if order is None or not email:
+        return jsonify({"error": "No order matches that number and email."}), 404
+    return jsonify({"order": order_dict(db, order)})
 
 
 @app.get("/api/seller")
@@ -621,7 +740,22 @@ def api_seller():
     user = session.get("user")
     if not user or user.get("role") != "seller":
         return jsonify({"error": "Seller features require a seller account."}), 403
-    return jsonify({"user": user_dict(user)})
+    alerts = get_db().execute(
+        "SELECT low_stock_alerts FROM accounts WHERE id = ?", (user["id"],)
+    ).fetchone()
+    return jsonify({"user": user_dict(user), "low_stock_alerts": bool(alerts and alerts[0])})
+
+
+@app.post("/api/seller/alerts")
+def api_seller_alerts():
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    enabled = str(request_data().get("enabled")).lower() in {"true", "1"}
+    db = get_db()
+    db.execute("UPDATE accounts SET low_stock_alerts = ? WHERE id = ?", (int(enabled), user["id"]))
+    db.commit()
+    return jsonify({"low_stock_alerts": enabled})
 
 
 @app.get("/api/seller/listings")
@@ -648,12 +782,24 @@ def api_seller_add_listing():
         stock = int(data.get("stock"))
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid price or stock."}), 400
+    if not math.isfinite(price):
+        return jsonify({"error": "Invalid price or stock."}), 400
+    price = round(price, 2)
     if not name or not category or price <= 0 or stock < 0:
         return jsonify({"error": "Enter a name, a category, a price above 0, and a whole-number stock."}), 400
+    description = str(data.get("description", "")).strip()
+    image_url = str(data.get("image_url", "")).strip()
+    if not description:
+        return jsonify({"error": "Enter a description."}), 400
+    if image_url and not image_url.startswith(("http://", "https://")):
+        return jsonify({"error": "Image link must start with http:// or https://."}), 400
     db = get_db()
     cursor = db.execute(
-        "INSERT INTO products (name, category, price, stock, seller_id) VALUES (?, ?, ?, ?, ?)",
-        (name, category, round(price, 2), stock, user["id"]),
+        """
+        INSERT INTO products (name, category, price, stock, seller_id, description, image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (name, category, price, stock, user["id"], description, image_url or None),
     )
     db.commit()
     row = db.execute("SELECT * FROM products WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -672,6 +818,52 @@ def api_seller_remove_listing(product_id):
     if row is None:
         return jsonify({"error": "Listing not found."}), 404
     db.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    db.execute("DELETE FROM wishlist WHERE product_id = ?", (product_id,))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.get("/api/wishlist")
+def api_wishlist():
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to use the wish list."}), 401
+    rows = get_db().execute(
+        """
+        SELECT p.* FROM wishlist w JOIN products p ON p.id = w.product_id
+        WHERE w.account_id = ? ORDER BY p.name
+        """,
+        (user["id"],),
+    ).fetchall()
+    return jsonify({"items": [product_dict(row) for row in rows]})
+
+
+@app.post("/api/wishlist")
+def api_wishlist_add():
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to use the wish list."}), 401
+    product_id = str(request_data().get("product_id"))
+    db = get_db()
+    if db.execute("SELECT 1 FROM products WHERE id = ?", (product_id,)).fetchone() is None:
+        return jsonify({"error": "That product does not exist."}), 404
+    db.execute(
+        "INSERT OR IGNORE INTO wishlist (account_id, product_id) VALUES (?, ?)",
+        (user["id"], product_id),
+    )
+    db.commit()
+    return jsonify({"ok": True}), 201
+
+
+@app.delete("/api/wishlist/<int:product_id>")
+def api_wishlist_remove(product_id):
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to use the wish list."}), 401
+    db = get_db()
+    db.execute(
+        "DELETE FROM wishlist WHERE account_id = ? AND product_id = ?", (user["id"], product_id)
+    )
     db.commit()
     return jsonify({"ok": True})
 

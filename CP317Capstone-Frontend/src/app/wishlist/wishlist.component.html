@@ -1,0 +1,49 @@
+<main class="page">
+  <section class="card">
+    <h1>Wish list</h1>
+    <p class="subtitle">Items you saved to buy later. Saving an item does not add it to your cart.</p>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <div class="panel"><table class="results">
+      <thead>
+      <tr>
+        <th>Item</th>
+        <th class="num">Price</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+      </thead>
+      <tbody>
+        @for (p of items(); track p.id) {
+          <tr>
+            <td>
+              <div class="name">{{ p.name }}</div>
+              <div class="category">{{ p.category }}</div>
+            </td>
+            <td class="num money">{{ p.price | currency }}</td>
+            <td>
+              <span class="badge" [class.low]="p.stock > 0 && p.stock < 5" [class.out]="p.stock === 0">{{ p.label }}</span>
+            </td>
+            <td class="right">
+              <button type="button" class="remove to-cart" (click)="addToCart(p)" [disabled]="p.stock === 0">Add to cart</button>
+              <button type="button" class="remove" (click)="remove(p)">Remove</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="empty">
+              @if (loading()) {
+                Loading…
+              } @else {
+                Your wish list is empty. Use the heart button on a product to save it. <a routerLink="/">Browse products</a>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table></div>
+  </section>
+</main>

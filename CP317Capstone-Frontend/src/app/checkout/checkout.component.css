@@ -1,0 +1,10 @@
+.spaced { margin-top: 24px; }
+
+.notice { max-width: 560px; padding: 20px 24px; }
+.notice ul { padding-left: 18px; }
+.notice-actions { display: flex; gap: var(--gap); align-items: center; margin-top: 16px; }
+
+.confirmation { max-width: 640px; padding: 24px; }
+.confirmation dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 24px; margin: 0 0 20px; }
+.confirmation dt { color: var(--muted); }
+.confirmation dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }

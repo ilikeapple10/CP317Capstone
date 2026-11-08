@@ -13,6 +13,17 @@ export interface Product {
   price: number;
   stock: number;
   label: string;
+  description?: string | null;
+  image_url?: string | null;
+}
+
+export interface CheckoutDetails {
+  name: string;
+  email: string;
+  address: string;
+  card_number: string;
+  expiry: string;
+  cvv: string;
 }
 
 export interface Cart {
@@ -32,8 +43,8 @@ export class ApiService {
   private http = inject(HttpClient);
 
   getProducts(q = '', category = '') {
-    let params = new HttpParams();
-    if (q) params = params.set('q', q);
+    // Always send q: without it the backend narrows the list to the shopper's preferred category.
+    let params = new HttpParams().set('q', q);
     if (category) params = params.set('category', category);
     return this.http.get<ProductsResponse>(`${BASE}/api/products`, { ...opts, params });
   }
@@ -58,30 +69,46 @@ export class ApiService {
     return this.http.post(`${BASE}/api/account`, data, opts);
   }
   login(email: string, password: string) {
-    return this.http.post(`${BASE}/api/login`, { email, password }, opts);
+    return this.http.post<{ user: any }>(`${BASE}/api/login`, { email, password }, opts);
   }
   logout() {
     return this.http.post<{ ok: boolean }>(`${BASE}/api/logout`, {}, opts);
   }
   me() {
-    return this.http.get(`${BASE}/api/me`, opts);
+    return this.http.get<{ user: any; consent: string | null }>(`${BASE}/api/me`, opts);
   }
-  placeOrder() {
-    return this.http.post<{ order_id: number; total: number }>(`${BASE}/api/orders`, {}, opts);
+  placeOrder(details: CheckoutDetails) {
+    return this.http.post<{ order_id: number; total: number; order: any }>(`${BASE}/api/orders`, details, opts);
+  }
+  lookupOrder(orderId: number, email: string) {
+    return this.http.post<{ order: any }>(`${BASE}/api/orders/lookup`, { order_id: orderId, email }, opts);
   }
   getOrders() {
     return this.http.get<{ orders: any[] }>(`${BASE}/api/orders`, opts);
   }
   seller() {
-    return this.http.get(`${BASE}/api/seller`, opts);
+    return this.http.get<{ user: any; low_stock_alerts: boolean }>(`${BASE}/api/seller`, opts);
+  }
+  setLowStockAlerts(enabled: boolean) {
+    return this.http.post<{ low_stock_alerts: boolean }>(`${BASE}/api/seller/alerts`, { enabled }, opts);
   }
   getSellerListings() {
     return this.http.get<{ listings: any[] }>(`${BASE}/api/seller/listings`, opts);
   }
-  addSellerListing(data: { name: string; category: string; price: number; stock: number }) {
+  addSellerListing(data: { name: string; category: string; price: number; stock: number; description: string; image_url: string }) {
     return this.http.post<{ listing: any }>(`${BASE}/api/seller/listings`, data, opts);
   }
   removeSellerListing(id: number) {
     return this.http.delete(`${BASE}/api/seller/listings/${id}`, opts);
+  }
+
+  getWishlist() {
+    return this.http.get<{ items: Product[] }>(`${BASE}/api/wishlist`, opts);
+  }
+  addToWishlist(productId: number) {
+    return this.http.post(`${BASE}/api/wishlist`, { product_id: productId }, opts);
+  }
+  removeFromWishlist(productId: number) {
+    return this.http.delete(`${BASE}/api/wishlist/${productId}`, opts);
   }
 }
