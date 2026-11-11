@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { ApiService, Product } from '../api.service';
-import { CartService } from '../cart.service';
+import { ApiService, Product } from '../services/apiService';
+import { CartService } from '../services/cartService';
 
 @Component({
   selector: 'app-products',

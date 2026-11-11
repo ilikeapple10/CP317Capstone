@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ApiService } from '../api.service';
+import { AuthService } from '../services/authService';
 
 @Component({
   selector: 'app-login',
@@ -13,10 +13,9 @@ import { ApiService } from '../api.service';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
-  private api = inject(ApiService);
+  private auth = inject(AuthService);
   private router = inject(Router);
 
-  // Reactive state management
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
 
@@ -26,8 +25,6 @@ export class LoginComponent {
   });
 
   onSubmit() {
-    // If form is invalid, simply block execution. 
-    // Template's formRef.submitted handles showing the error messages.
     if (this.loginForm.invalid) {
       return;
     }
@@ -37,8 +34,8 @@ export class LoginComponent {
 
     const { email, password } = this.loginForm.value;
 
-    this.api.login(email!, password!).subscribe({
-      next: (res) => {
+    this.auth.login(email!, password!).subscribe({
+      next: () => {
         this.isLoading.set(false);
         this.router.navigate(['']);
       },

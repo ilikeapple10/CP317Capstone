@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { tap } from 'rxjs';
-import { ApiService } from './api.service';
+import { ApiService } from './apiService';
 
 export interface CartLine {
   productId: number;

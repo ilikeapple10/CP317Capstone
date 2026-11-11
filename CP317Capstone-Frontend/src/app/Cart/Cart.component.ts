@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
-import { CartService, CartLine } from '../cart.service';
+import { CartService, CartLine } from '../services/cartService';
 
 @Component({
   selector: 'app-cart',
