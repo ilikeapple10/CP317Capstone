@@ -1,20 +1,22 @@
 <main class="page">
   <section class="card">
-    <h1>Shopping Cart</h1>
+    <h1>Cart</h1>
     <p class="subtitle">Review your items and change quantities before checkout.</p>
 
     @if (error()) {
       <p class="error">{{ error() }}</p>
     }
 
-    @if (cart.lines().length === 0) {
+    @if (!cart.loaded()) {
+      <p class="count">Loading…</p>
+    } @else if (cart.lines().length === 0) {
       <div class="empty-cart">
         <p>Your cart is empty.</p>
         <a class="btn" routerLink="/">Continue shopping</a>
       </div>
     } @else {
       <div class="layout">
-        <table class="results">
+        <div class="panel"><table class="results">
           <thead>
           <tr>
             <th>Product</th>
@@ -41,26 +43,26 @@
                     <div class="max">Max available</div>
                   }
                 </td>
-                <td class="num">{{ line.price * line.qty | currency }}</td>
+                <td class="num money">{{ line.price * line.qty | currency }}</td>
                 <td class="right">
                   <button type="button" class="remove" (click)="remove(line)">Remove</button>
                 </td>
               </tr>
             }
           </tbody>
-        </table>
+        </table></div>
 
-        <aside class="summary">
+        <aside class="summary panel">
           <h2>Order summary</h2>
           <div class="row">
             <span>Items</span>
-            <span>{{ cart.count() }}</span>
+            <span class="num">{{ cart.count() }}</span>
           </div>
           <div class="row total">
             <span>Subtotal</span>
-            <span>{{ cart.subtotal() | currency }}</span>
+            <span class="money">{{ cart.subtotal() | currency }}</span>
           </div>
-          <button type="button" class="btn primary" (click)="placeOrder()">Proceed to checkout</button>
+          <a class="btn primary" routerLink="/checkout">Proceed to checkout</a>
         </aside>
       </div>
     }

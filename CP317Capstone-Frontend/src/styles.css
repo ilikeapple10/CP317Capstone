@@ -1,1 +1,163 @@
-/* You can add global styles to this file, and also import other style files */
+/* Achromatic ledger (tasteskill app style, seed 1876920420): ink chrome, colour only on status
+   and change. Face: a stone ground from a shop counter instead of the kit's #f8f8f8. */
+:root {
+  --ground: #f4f3f1;
+  --surface: #ffffff;
+  --raised: #eeeeee;
+  --border: #e6e6e6;
+  --rule: #f0f0f0;
+  --control: #d4d4d4;
+  --text: #0a0a0a;
+  --muted: #6b6b6b;
+  --accent: #141414;
+  --hue: #1d5fbf;
+  --positive: #2e7d32;
+  --negative: #c4242a;
+  --pill-positive-bg: #dcfae5; --pill-positive-ink: #04250e;
+  --pill-negative-bg: #ffedea; --pill-negative-ink: #831c1e;
+  --pill-warning-bg: #fffbeb; --pill-warning-ink: #92400e;
+  --pill-neutral-bg: #eeeeee; --pill-neutral-ink: #3d3d3d;
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --gap: 12px;
+  --pad: 24px;
+  --control-height: 36px;
+  --column: 1152px;
+  --font: "Geist", Inter, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text);
+  background: var(--ground);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--hue); outline-offset: 2px; }
+
+/* One centred column shared by the top bar and every screen. */
+.page { max-width: var(--column); margin: 0 auto; padding: 32px var(--pad) 64px; }
+h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -0.01em; }
+h2 { margin: 0 0 12px; font-size: 16px; line-height: 24px; font-weight: 500; }
+.subtitle { margin: 4px 0 24px; color: var(--muted); }
+
+.panel-title { margin: 0; padding: 16px 16px 4px; }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+/* Tables: rules and alignment, grey sentence-case headers, no bands. */
+.results { width: 100%; border-collapse: collapse; background: var(--surface); }
+.results th {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.results td { height: 48px; padding: 12px 16px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.results tbody tr:last-child td { border-bottom: 0; }
+.results th.num, .results td.num, .num { text-align: right; font-variant-numeric: tabular-nums; }
+.results th.right, .results td.right { text-align: right; white-space: nowrap; }
+.name { font-weight: 500; }
+.category { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.money { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Status: pale tint with dark ink of the same hue. */
+.badge {
+  display: inline-block;
+  flex: none;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--pill-positive-ink);
+  background: var(--pill-positive-bg);
+  border-radius: 999px;
+}
+.badge.low { color: var(--pill-warning-ink); background: var(--pill-warning-bg); }
+.badge.out { color: var(--pill-negative-ink); background: var(--pill-negative-bg); }
+.badge.neutral { color: var(--pill-neutral-ink); background: var(--pill-neutral-bg); }
+
+/* Buttons: one near-black primary, a grey secondary, text actions. */
+.primary, .btn, .btn-link, .add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-height);
+  padding: 0 16px;
+  font-weight: 500;
+  text-decoration: none;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+}
+.primary:hover, .btn:hover, .btn-link:hover, .add:hover:not(:disabled) { background: #333; }
+.primary:active, .btn:active, .add:active:not(:disabled) { transform: translateY(1px); }
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-height);
+  padding: 0 16px;
+  font-weight: 500;
+  color: var(--text);
+  background: #e5e5e5;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.secondary:hover { background: #dadada; }
+.add:disabled, .primary:disabled { color: var(--muted); background: var(--raised); cursor: default; }
+.remove {
+  height: 32px;
+  padding: 0 8px;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.remove:hover:not(:disabled) { background: var(--raised); }
+.remove:disabled { color: var(--muted); cursor: default; }
+
+/* Fields: label above, white 40px input, one control border. */
+.form label { display: block; margin: 16px 0 8px; font-weight: 500; }
+.form input, .form select, .form textarea, .controls input, .controls select, .lookup input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--control);
+  border-radius: var(--radius-control);
+}
+.form textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.form input:focus, .form select:focus, .form textarea:focus,
+.controls input:focus, .controls select:focus, .lookup input:focus { outline: none; border-color: var(--text); }
+.form .primary { width: 100%; margin-top: 24px; }
+
+.error {
+  margin: 16px 0;
+  padding: 10px 12px;
+  color: var(--pill-negative-ink);
+  background: var(--pill-negative-bg);
+  border-radius: var(--radius-control);
+}
+.empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .page { padding: 20px 16px 48px; }
+  h1 { font-size: 22px; }
+}
