@@ -48,6 +48,9 @@
                                     @if (p.description) {
                                         <div class="description">{{ p.description }}</div>
                                     }
+                                    <button type="button" class="reviews-toggle" (click)="toggleReviews(p.id)">
+                                        ★ Reviews {{ expandedId() === p.id ? '▲' : '▼' }}
+                                    </button>
                                 </div>
                             </div>
                         </td>
@@ -75,6 +78,58 @@
                             </button>
                         </td>
                     </tr>
+                    @if (expandedId() === p.id) {
+                        <tr class="reviews-row">
+                            <td colspan="4">
+                                <div class="reviews-panel">
+                                    @if (!reviewsData()[p.id]) {
+                                        <p class="reviews-loading">Loading reviews…</p>
+                                    } @else {
+                                        <div class="reviews-summary">
+                                            @if (reviewsData()[p.id].count > 0) {
+                                                <span class="stars">{{ stars(reviewsData()[p.id].avg_rating) }}</span>
+                                                <span class="reviews-meta">{{ reviewsData()[p.id].avg_rating }}/5 · {{ reviewsData()[p.id].count }} review{{ reviewsData()[p.id].count === 1 ? '' : 's' }}</span>
+                                            } @else {
+                                                <span class="reviews-meta">No reviews yet.</span>
+                                            }
+                                        </div>
+
+                                        @for (r of reviewsData()[p.id].reviews; track r.id) {
+                                            <div class="review">
+                                                <div class="review-header">
+                                                    <span class="stars">{{ stars(r.rating) }}</span>
+                                                    <span class="review-author">{{ r.reviewer_name }}</span>
+                                                    <span class="review-date">{{ r.created_at | date:'mediumDate' }}</span>
+                                                    @if (reviewsData()[p.id].user_review?.id === r.id) {
+                                                        <button type="button" class="review-delete" (click)="deleteReview(r.id, p.id)">Delete</button>
+                                                    }
+                                                </div>
+                                                <p class="review-comment">{{ r.comment }}</p>
+                                            </div>
+                                        }
+
+                                        @if (user() && !reviewsData()[p.id].user_review) {
+                                            <form class="review-form" (submit)="submitReview($event, p.id, rt, cm)">
+                                                <select #rt aria-label="Rating">
+                                                    <option value="">Rate this product…</option>
+                                                    <option value="5">★★★★★ Excellent</option>
+                                                    <option value="4">★★★★☆ Good</option>
+                                                    <option value="3">★★★☆☆ Okay</option>
+                                                    <option value="2">★★☆☆☆ Poor</option>
+                                                    <option value="1">★☆☆☆☆ Terrible</option>
+                                                </select>
+                                                <textarea #cm rows="2" placeholder="Write your review…"></textarea>
+                                                @if (reviewsData()[p.id].formError) {
+                                                    <p class="error">{{ reviewsData()[p.id].formError }}</p>
+                                                }
+                                                <button type="submit" class="primary">Submit review</button>
+                                            </form>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 } @empty {
                     <tr>
                         <td colspan="4" class="empty">{{ loading() ? 'Loading…' : 'No products found. Try a different search.' }}</td>

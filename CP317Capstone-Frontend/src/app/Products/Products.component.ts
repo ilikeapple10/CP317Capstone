@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiService, Product } from '../api.service';
 import { CartService } from '../cart.service';
@@ -7,7 +7,7 @@ import { CartService } from '../cart.service';
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, DatePipe],
   templateUrl: './Products.component.html',
   styleUrl: './Products.component.css',
 })
@@ -23,6 +23,9 @@ export class ProductsComponent implements OnInit {
   missingImages = signal<Set<number>>(new Set());
   added = signal<number | null>(null);
   wished = signal<Set<number>>(new Set());
+  user = signal<any>(null);
+  expandedId = signal<number | null>(null);
+  reviewsData = signal<Record<number, any>>({});
 
   ngOnInit() {
     this.load('', '');
@@ -87,10 +90,50 @@ export class ProductsComponent implements OnInit {
     this.missingImages.update((s) => new Set(s).add(p.id));
   }
 
+  toggleReviews(id: number) {
+    if (this.expandedId() === id) { this.expandedId.set(null); return; }
+    this.expandedId.set(id);
+    if (!this.reviewsData()[id]) this.loadReviews(id);
+  }
+
+  loadReviews(id: number) {
+    this.api.getProductReviews(id).subscribe({
+      next: (res: any) => this.reviewsData.update(m => ({ ...m, [id]: res })),
+    });
+  }
+
+  submitReview(event: Event, productId: number, ratingEl: HTMLSelectElement, commentEl: HTMLTextAreaElement) {
+    event.preventDefault();
+    const rating = Number(ratingEl.value);
+    const comment = commentEl.value.trim();
+    if (!rating || !comment) return;
+    this.api.submitReview(productId, rating, comment).subscribe({
+      next: () => {
+        this.loadReviews(productId);
+        ratingEl.value = '';
+        commentEl.value = '';
+      },
+      error: (e: any) => this.reviewsData.update(m => ({
+        ...m, [productId]: { ...m[productId], formError: e.error?.error || 'Could not submit review.' }
+      })),
+    });
+  }
+
+  deleteReview(reviewId: number, productId: number) {
+    this.api.deleteReview(reviewId).subscribe({
+      next: () => this.loadReviews(productId),
+    });
+  }
+
+  stars(n: number) {
+    return '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+  }
+
   private load(query: string, category: string) {
     this.api.getProducts(query, category).subscribe({
       next: (res) => {
         this.products.set(res.products);
+        this.user.set(res.user ?? null);
         if (this.categories().length === 0) {
           this.categories.set(res.categories);
         }
