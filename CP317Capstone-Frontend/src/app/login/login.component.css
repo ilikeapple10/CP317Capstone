@@ -1,0 +1,43 @@
+.captcha-block {
+  margin-bottom: 16px;
+}
+
+.captcha-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f4f4f4;
+  border-radius: var(--radius-control);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.captcha-svg { flex-shrink: 0; }
+
+.captcha-refresh {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1;
+  padding: 2px;
+}
+.captcha-refresh:hover { color: var(--text); }
+
+.captcha-input {
+  height: 36px;
+  width: 100%;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--control);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.captcha-input:focus { outline: none; border-color: var(--text); }

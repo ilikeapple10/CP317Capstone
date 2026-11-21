@@ -46,9 +46,27 @@
 
       <!-- CAPTCHA (shown after first failed attempt) -->
       @if (captchaQuestion()) {
-        <div class="form-group">
-          <label for="captcha">What is {{ captchaQuestion() }}?</label>
-          <input type="number" id="captcha" formControlName="captcha" autocomplete="off" />
+        <div class="captcha-block">
+          <div class="captcha-card">
+            <svg class="captcha-svg" width="230" height="56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- decorative noise lines -->
+              <line x1="0"   y1="18" x2="230" y2="40" stroke="#b0b0b0" stroke-width="1.5" opacity="0.55"/>
+              <line x1="20"  y1="50" x2="210" y2="8"  stroke="#c0c0c0" stroke-width="1"   opacity="0.45"/>
+              <line x1="60"  y1="2"  x2="170" y2="54" stroke="#aaa"    stroke-width="1"   opacity="0.35"/>
+              <circle cx="45"  cy="12" r="2"   fill="#bbb" opacity="0.5"/>
+              <circle cx="185" cy="44" r="1.5" fill="#bbb" opacity="0.4"/>
+              <circle cx="110" cy="6"  r="1"   fill="#aaa" opacity="0.3"/>
+              <!-- "What is" label -->
+              <text x="8" y="38" font-family="Georgia, serif" font-size="17" font-weight="600"
+                    fill="#b34a00" transform="rotate(-2 8 38)">What is</text>
+              <!-- math expression -->
+              <text x="112" y="40" font-family="Georgia, serif" font-size="28" font-weight="700"
+                    fill="#1a1a1a" transform="rotate(1.5 112 40)">{{ captchaQuestion() }}?</text>
+            </svg>
+            <button type="button" class="captcha-refresh" (click)="refreshCaptcha()" title="New question">↻</button>
+          </div>
+          <input class="captcha-input" type="number" formControlName="captcha"
+                 placeholder="Type your answer" autocomplete="off" />
         </div>
       }
 

@@ -9,7 +9,7 @@ import { ApiService } from '../api.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
-  styleUrl: '../signup/signup.component.css'
+  styleUrls: ['../signup/signup.component.css', './login.component.css']
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
@@ -25,6 +25,10 @@ export class LoginComponent {
     password: ['', [Validators.required, Validators.minLength(6)]],
     captcha: ['']
   });
+
+  refreshCaptcha() {
+    this.api.getCaptcha().subscribe({ next: (r) => { this.captchaQuestion.set(r.question); this.loginForm.patchValue({ captcha: '' }); } });
+  }
 
   onSubmit() {
     if (this.loginForm.invalid) return;
