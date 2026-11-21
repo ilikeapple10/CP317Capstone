@@ -5,7 +5,8 @@ import math
 import os
 import secrets
 import sqlite3
-from datetime import date
+import random
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
@@ -111,6 +112,15 @@ def init_db():
             product_id INTEGER NOT NULL,
             PRIMARY KEY (account_id, product_id)
         );
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY,
+            product_id INTEGER NOT NULL,
+            account_id INTEGER NOT NULL,
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE (product_id, account_id)
+        );
         """
     )
     # Sprint 1 databases made orders.account_id NOT NULL; guest orders need it nullable.
@@ -136,6 +146,8 @@ def init_db():
         ("products", "description TEXT"),
         ("products", "image_url TEXT"),
         ("accounts", "low_stock_alerts INTEGER NOT NULL DEFAULT 0"),
+        ("accounts", "failed_attempts INTEGER NOT NULL DEFAULT 0"),
+        ("accounts", "locked_until TEXT"),
         ("orders", "email TEXT"),
         ("orders", "shipping_address TEXT"),
         ("orders", "reference TEXT"),
@@ -581,14 +593,63 @@ def api_create_account():
     ), 201
 
 
+@app.get("/api/captcha")
+def api_captcha():
+    a, b = random.randint(1, 9), random.randint(1, 9)
+    session["captcha"] = a + b
+    return jsonify({"question": f"{a} + {b}"})
+
+
 @app.post("/api/login")
 def api_login():
     data = request_data()
     email = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
-    account = get_db().execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone()
-    if account is None or not check_password(password, account["password_hash"]):
+    db = get_db()
+    account = db.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone()
+
+    if account is None:
         return jsonify({"error": "Email or password does not match."}), 401
+
+    # Lock check
+    locked_until = account["locked_until"]
+    if locked_until:
+        lock_dt = datetime.strptime(locked_until, "%Y-%m-%d %H:%M:%S")
+        if datetime.utcnow() < lock_dt:
+            remaining = max(1, int((lock_dt - datetime.utcnow()).total_seconds() / 60) + 1)
+            return jsonify({"error": f"Account locked. Try again in {remaining} minute(s)."}), 423
+
+    # CAPTCHA check (required after the first failed attempt)
+    if account["failed_attempts"] >= 1:
+        try:
+            captcha_input = int(data.get("captcha", ""))
+        except (ValueError, TypeError):
+            captcha_input = None
+        expected = session.pop("captcha", None)
+        if expected is None or captcha_input != expected:
+            return jsonify({"error": "Incorrect CAPTCHA.", "require_captcha": True}), 400
+
+    if not check_password(password, account["password_hash"]):
+        new_attempts = account["failed_attempts"] + 1
+        if new_attempts >= 5:
+            locked = (datetime.utcnow() + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+            db.execute(
+                "UPDATE accounts SET failed_attempts = 0, locked_until = ? WHERE id = ?",
+                (locked, account["id"]),
+            )
+            db.commit()
+            return jsonify({"error": "Too many failed attempts. Account locked for 15 minutes."}), 401
+        db.execute(
+            "UPDATE accounts SET failed_attempts = ? WHERE id = ?", (new_attempts, account["id"])
+        )
+        db.commit()
+        return jsonify({"error": "Email or password does not match.", "require_captcha": True}), 401
+
+    db.execute(
+        "UPDATE accounts SET failed_attempts = 0, locked_until = NULL WHERE id = ?", (account["id"],)
+    )
+    db.commit()
+    session.pop("captcha", None)
     session["user"] = {
         "id": account["id"],
         "name": account["name"],
@@ -864,6 +925,83 @@ def api_wishlist_remove(product_id):
     db.execute(
         "DELETE FROM wishlist WHERE account_id = ? AND product_id = ?", (user["id"], product_id)
     )
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.get("/api/products/<int:product_id>/reviews")
+def api_get_reviews(product_id):
+    user = session.get("user")
+    db = get_db()
+    rows = db.execute(
+        "SELECT r.id, r.rating, r.comment, r.created_at, a.name AS reviewer_name, r.account_id "
+        "FROM reviews r JOIN accounts a ON a.id = r.account_id "
+        "WHERE r.product_id = ? ORDER BY r.created_at DESC",
+        (product_id,),
+    ).fetchall()
+    reviews = [dict(r) for r in rows]
+    for r in reviews:
+        del r["account_id"]
+    avg = round(sum(r["rating"] for r in reviews) / len(reviews), 1) if reviews else None
+    user_review = None
+    if user:
+        ur = db.execute(
+            "SELECT id, rating, comment, created_at FROM reviews WHERE product_id = ? AND account_id = ?",
+            (product_id, user["id"]),
+        ).fetchone()
+        if ur:
+            user_review = dict(ur)
+    return jsonify({"reviews": reviews, "avg_rating": avg, "count": len(reviews), "user_review": user_review})
+
+
+@app.post("/api/products/<int:product_id>/reviews")
+def api_post_review(product_id):
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to leave a review."}), 401
+    db = get_db()
+    purchased = db.execute(
+        "SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id "
+        "WHERE o.account_id = ? AND oi.product_id = ?",
+        (user["id"], product_id),
+    ).fetchone()
+    if not purchased:
+        return jsonify({"error": "You can only review products you have purchased."}), 403
+    data = request_data()
+    try:
+        rating = int(data.get("rating", 0))
+    except (ValueError, TypeError):
+        rating = 0
+    comment = str(data.get("comment", "")).strip()
+    if not (1 <= rating <= 5):
+        return jsonify({"error": "Rating must be between 1 and 5."}), 400
+    if not comment:
+        return jsonify({"error": "Comment cannot be empty."}), 400
+    cur = db.execute(
+        "INSERT OR IGNORE INTO reviews (product_id, account_id, rating, comment) VALUES (?, ?, ?, ?)",
+        (product_id, user["id"], rating, comment),
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        return jsonify({"error": "You have already reviewed this product."}), 409
+    review = db.execute(
+        "SELECT r.id, r.rating, r.comment, r.created_at, a.name AS reviewer_name "
+        "FROM reviews r JOIN accounts a ON a.id = r.account_id WHERE r.id = ?",
+        (cur.lastrowid,),
+    ).fetchone()
+    return jsonify({"review": dict(review)}), 201
+
+
+@app.delete("/api/reviews/<int:review_id>")
+def api_delete_review(review_id):
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Sign in to delete a review."}), 401
+    db = get_db()
+    review = db.execute("SELECT * FROM reviews WHERE id = ?", (review_id,)).fetchone()
+    if review is None or review["account_id"] != user["id"]:
+        return jsonify({"error": "Review not found."}), 404
+    db.execute("DELETE FROM reviews WHERE id = ?", (review_id,))
     db.commit()
     return jsonify({"ok": True})
 

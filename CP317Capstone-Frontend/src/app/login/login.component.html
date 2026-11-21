@@ -44,6 +44,14 @@
         }
       </div>
 
+      <!-- CAPTCHA (shown after first failed attempt) -->
+      @if (captchaQuestion()) {
+        <div class="form-group">
+          <label for="captcha">What is {{ captchaQuestion() }}?</label>
+          <input type="number" id="captcha" formControlName="captcha" autocomplete="off" />
+        </div>
+      }
+
       <!-- Submit Button -->
       <button type="submit" class="btn-submit" [disabled]="isLoading()">
         @if (isLoading()) {

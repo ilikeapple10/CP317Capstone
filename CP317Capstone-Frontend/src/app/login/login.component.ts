@@ -16,37 +16,40 @@ export class LoginComponent {
   private api = inject(ApiService);
   private router = inject(Router);
 
-  // Reactive state management
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
+  captchaQuestion = signal('');
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    captcha: ['']
   });
 
   onSubmit() {
-    // If form is invalid, simply block execution. 
-    // Template's formRef.submitted handles showing the error messages.
-    if (this.loginForm.invalid) {
-      return;
-    }
+    if (this.loginForm.invalid) return;
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    const { email, password } = this.loginForm.value;
+    const { email, password, captcha } = this.loginForm.value;
 
-    this.api.login(email!, password!).subscribe({
+    this.api.login(email!, password!, this.captchaQuestion() ? captcha! : undefined).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         this.router.navigate([res.user?.role === 'seller' ? '/seller' : '']);
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(
-          err.error?.error || err.error?.message || 'Invalid email or password. Please try again.'
-        );
+        if (err.status === 423) {
+          this.errorMessage.set(err.error?.error || 'Account locked. Please try again later.');
+          this.captchaQuestion.set('');
+        } else {
+          this.errorMessage.set(err.error?.error || err.error?.message || 'Invalid email or password. Please try again.');
+          if (err.error?.require_captcha) {
+            this.api.getCaptcha().subscribe({ next: (r) => { this.captchaQuestion.set(r.question); this.loginForm.patchValue({ captcha: '' }); } });
+          }
+        }
       }
     });
   }

@@ -68,8 +68,11 @@ export class ApiService {
   createAccount(data: { name: string; email: string; password: string; role: string; preferred_category: string }) {
     return this.http.post(`${BASE}/api/account`, data, opts);
   }
-  login(email: string, password: string) {
-    return this.http.post<{ user: any }>(`${BASE}/api/login`, { email, password }, opts);
+  login(email: string, password: string, captcha?: string) {
+    return this.http.post<{ user: any }>(`${BASE}/api/login`, { email, password, ...(captcha ? { captcha } : {}) }, opts);
+  }
+  getCaptcha() {
+    return this.http.get<{ question: string }>(`${BASE}/api/captcha`, opts);
   }
   logout() {
     return this.http.post<{ ok: boolean }>(`${BASE}/api/logout`, {}, opts);
@@ -111,4 +114,8 @@ export class ApiService {
   removeFromWishlist(productId: number) {
     return this.http.delete(`${BASE}/api/wishlist/${productId}`, opts);
   }
+
+  getProductReviews(productId: number) { return this.http.get(`${BASE}/api/products/${productId}/reviews`, opts); }
+  submitReview(productId: number, rating: number, comment: string) { return this.http.post(`${BASE}/api/products/${productId}/reviews`, { rating, comment }, opts); }
+  deleteReview(reviewId: number) { return this.http.delete(`${BASE}/api/reviews/${reviewId}`, opts); }
 }
