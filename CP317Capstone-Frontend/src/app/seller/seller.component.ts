@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { ApiService } from '../api.service';
+import {forkJoin} from "rxjs";
 
 interface Listing {
   id: number;
@@ -34,12 +35,20 @@ export class SellerComponent implements OnInit {
   lowStock = computed(() => this.listings().filter((l) => l.stock > 0 && l.stock < 5));
   outOfStock = computed(() => this.listings().filter((l) => l.stock === 0));
   totalUnits = computed(() => this.listings().reduce((n, l) => n + l.stock, 0));
+  purchased = signal<Record<number, number>>({});
   showAlert = computed(() => this.alertsOn() && !this.alertDismissed() && this.lowStock().length > 0);
 
   ngOnInit() {
     this.api.getSellerListings().subscribe({
-      next: (res) => { this.listings.set(res.listings); this.loading.set(false); },
-      error: () => { this.formError.set('Could not load listings.'); this.loading.set(false); },
+      next: (res) => {
+        this.listings.set(res.listings);
+        this.loading.set(false);
+        this.loadPurchaseCounts(res.listings);
+      },
+      error: () => {
+        this.formError.set('Could not load listings.');
+        this.loading.set(false);
+      },
     });
     this.api.seller().subscribe({ next: (res) => this.alertsOn.set(res.low_stock_alerts) });
   }
@@ -76,11 +85,24 @@ export class SellerComponent implements OnInit {
     this.api.addSellerListing(data).subscribe({
       next: (res) => {
         this.listings.update((list) => list.map((l) => (l.id === tempId ? res.listing : l)));
+        this.purchased.update((m) => ({ ...m, [res.listing.id]: 0 }));
         form.reset();
       },
       error: (err: any) => {
         this.listings.update((list) => list.filter((l) => l.id !== tempId));
         this.formError.set(err.error?.error ?? 'Could not add listing.');
+      },
+    });
+  }
+
+  private loadPurchaseCounts(listings: Listing[]) {
+    const real = listings.filter((l) => l.id > 0);
+    if (!real.length) return;
+    forkJoin(real.map((l) => this.api.getPurchaseCount(l.id))).subscribe({
+      next: (results) => {
+        const map: Record<number, number> = { ...this.purchased() };
+        real.forEach((l, i) => (map[l.id] = results[i].count));
+        this.purchased.set(map);
       },
     });
   }

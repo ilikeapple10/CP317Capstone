@@ -90,6 +90,7 @@
             <th>Item</th>
             <th class="num">Price</th>
             <th class="num">Stock</th>
+            <th class="num">Purchased</th>
             <th>Status</th>
             <th></th>
           </tr>
@@ -103,6 +104,7 @@
                 </td>
                 <td class="num money">{{ l.price | currency }}</td>
                 <td class="num">{{ l.stock }}</td>
+                <td class="num">{{ purchased()[l.id] ?? 0 }}</td>
                 <td>
                   @if (l.pending) {
                     <span class="badge pending">Pending validation</span>

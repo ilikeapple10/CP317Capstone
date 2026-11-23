@@ -101,6 +101,11 @@ export class ApiService {
   addSellerListing(data: { name: string; category: string; price: number; stock: number; description: string; image_url: string }) {
     return this.http.post<{ listing: any }>(`${BASE}/api/seller/listings`, data, opts);
   }
+
+  getPurchaseCount(productId: number) {
+    return this.http.get<{ count: number }>(`${BASE}/api/products/${productId}/purchase-count`, opts);
+  }
+
   removeSellerListing(id: number) {
     return this.http.delete(`${BASE}/api/seller/listings/${id}`, opts);
   }
