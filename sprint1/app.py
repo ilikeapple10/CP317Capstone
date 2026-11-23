@@ -929,6 +929,15 @@ def api_wishlist_remove(product_id):
     return jsonify({"ok": True})
 
 
+@app.get("/api/products/<int:product_id>/purchase-count")
+def api_purchase_count(product_id):
+    row = get_db().execute(
+        "SELECT COALESCE(SUM(qty), 0) AS total FROM order_items WHERE product_id = ?",
+        (product_id,),
+    ).fetchone()
+    return jsonify({"count": row["total"]})
+
+
 @app.get("/api/products/<int:product_id>/reviews")
 def api_get_reviews(product_id):
     user = session.get("user")
