@@ -151,6 +151,7 @@ def init_db():
         ("orders", "email TEXT"),
         ("orders", "shipping_address TEXT"),
         ("orders", "reference TEXT"),
+        ("orders", "status TEXT NOT NULL DEFAULT 'pending'"),
     ]:
         try:
             db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
@@ -865,6 +866,72 @@ def api_seller_add_listing():
     db.commit()
     row = db.execute("SELECT * FROM products WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return jsonify({"listing": product_dict(row)}), 201
+
+
+@app.get("/api/seller/orders")
+def api_seller_orders():
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT o.id, o.placed_at, o.total, o.email, o.shipping_address, o.reference, o.status,
+               oi.id AS item_id, oi.product_id, oi.name AS product_name, oi.price, oi.qty
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.id
+        JOIN products p ON p.id = oi.product_id
+        WHERE p.seller_id = ?
+        ORDER BY o.placed_at DESC
+        """,
+        (user["id"],),
+    ).fetchall()
+    orders: dict = {}
+    for r in rows:
+        oid = r["id"]
+        if oid not in orders:
+            orders[oid] = {
+                "id": oid,
+                "placed_at": r["placed_at"],
+                "total": r["total"],
+                "email": r["email"],
+                "shipping_address": r["shipping_address"],
+                "reference": r["reference"],
+                "status": r["status"],
+                "items": [],
+            }
+        orders[oid]["items"].append({
+            "id": r["item_id"],
+            "product_id": r["product_id"],
+            "name": r["product_name"],
+            "price": r["price"],
+            "qty": r["qty"],
+        })
+    return jsonify({"orders": list(orders.values())})
+
+
+@app.patch("/api/seller/orders/<int:order_id>/status")
+def api_seller_order_status(order_id):
+    user = session.get("user")
+    if not user or user.get("role") != "seller":
+        return jsonify({"error": "Seller features require a seller account."}), 403
+    status = str(request_data().get("status", "")).strip()
+    if status not in {"pending", "processing", "shipped", "delivered"}:
+        return jsonify({"error": "Status must be pending, processing, shipped, or delivered."}), 400
+    db = get_db()
+    owns = db.execute(
+        """
+        SELECT 1 FROM order_items oi
+        JOIN products p ON p.id = oi.product_id
+        WHERE oi.order_id = ? AND p.seller_id = ?
+        """,
+        (order_id, user["id"]),
+    ).fetchone()
+    if not owns:
+        return jsonify({"error": "Order not found."}), 404
+    db.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
+    db.commit()
+    return jsonify({"ok": True, "status": status})
 
 
 @app.delete("/api/seller/listings/<int:product_id>")
