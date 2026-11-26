@@ -708,6 +708,7 @@ def order_dict(db, o):
         "reference": o["reference"],
         "email": o["email"],
         "shipping_address": o["shipping_address"],
+        "status": o["status"],
         "items": [
             {"id": i["id"], "name": i["name"], "price": i["price"], "qty": i["qty"]}
             for i in items
@@ -776,12 +777,15 @@ def api_orders():
     user = session.get("user")
     if not user:
         return jsonify({"error": "Sign in to view orders."}), 401
-    db = get_db()
-    order_rows = db.execute(
-        "SELECT * FROM orders WHERE account_id = ? ORDER BY placed_at DESC", (user["id"],)
-    ).fetchall()
-    return jsonify({"orders": [order_dict(db, o) for o in order_rows]})
 
+    db = get_db()
+
+    order_rows = db.execute(
+        "SELECT * FROM orders WHERE account_id = ? ORDER BY placed_at DESC",
+        (user["id"],)
+    ).fetchall()
+
+    return jsonify({"orders": [order_dict(db, o) for o in order_rows]})
 
 @app.post("/api/orders/lookup")
 def api_order_lookup():

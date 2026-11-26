@@ -1,14 +1,98 @@
-.order { margin-bottom: 24px; }
-.order-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
-.order-id { font-weight: 500; font-size: 16px; }
-.order-date { color: var(--muted); font-variant-numeric: tabular-nums; }
-.order-total { margin-left: auto; font-size: 16px; }
+.order {
+  margin-bottom: 24px;
+}
 
-.lookup { display: flex; align-items: flex-end; gap: var(--gap); margin-bottom: 24px; flex-wrap: wrap; }
-.lookup label { display: flex; flex-direction: column; gap: 8px; font-weight: 500; }
-.lookup input { width: 240px; font-weight: 400; }
+.order-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.order-id {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.order-date {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-total {
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+  line-height: 1.4;
+}
+
+.lookup {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.lookup label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.lookup input {
+  width: 240px;
+  font-weight: 400;
+}
+
+.order-header:has(.status-control) .status-control {
+  margin-left: auto;
+}
+
+.order-header:has(.status-control) .order-total {
+  margin-left: 0;
+}
+
+.status-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.status-control select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
 
 @media (max-width: 640px) {
-  .order-header { flex-wrap: wrap; gap: 4px 12px; }
-  .lookup label, .lookup input, .lookup button { width: 100%; }
+  .order-header {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .lookup label,
+  .lookup input,
+  .lookup button {
+    width: 100%;
+  }
 }

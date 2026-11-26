@@ -1,5 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+
+type Role = 'guest' | 'shopper' | 'seller';
 
 // Match the page hostname so session cookies work (localhost vs 127.0.0.1
 // are different sites to the browser).
@@ -38,10 +41,34 @@ export interface ProductsResponse {
   user: any;
 }
 
+
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
+  private role$ = new BehaviorSubject<Role>('guest');
 
+  constructor() {
+    this.http
+      .get<{ user?: any }>(`${BASE}/api/me`, opts)
+      .pipe(map(res => (res.user?.role ?? 'guest') as Role))
+      .subscribe(role => this.role$.next(role));
+  }
+
+private syncRoleFromUser(user: any): void {
+  this.role$.next((user?.role ?? 'guest') as Role);
+}
+
+refreshRole(): Observable<Role> {
+  return this.http.get<{ user?: any }>(`${BASE}/api/me`, opts).pipe(
+    map(res => (res.user?.role ?? 'guest') as Role),
+    tap(role => this.role$.next(role))
+  );
+}
+
+  currentRole(): Observable<Role> {
+    return this.role$.asObservable();
+  }
   getProducts(q = '', category = '') {
     // Always send q: without it the backend narrows the list to the shopper's preferred category.
     let params = new HttpParams().set('q', q);
@@ -69,16 +96,26 @@ export class ApiService {
     return this.http.post(`${BASE}/api/account`, data, opts);
   }
   login(email: string, password: string, captcha?: string) {
-    return this.http.post<{ user: any }>(`${BASE}/api/login`, { email, password, ...(captcha ? { captcha } : {}) }, opts);
+  return this.http
+    .post<{ user: any }>(
+      `${BASE}/api/login`,
+      { email, password, ...(captcha ? { captcha } : {}) },
+      opts
+    )
+    .pipe(tap(res => this.syncRoleFromUser(res?.user)));
   }
   getCaptcha() {
     return this.http.get<{ question: string }>(`${BASE}/api/captcha`, opts);
   }
   logout() {
-    return this.http.post<{ ok: boolean }>(`${BASE}/api/logout`, {}, opts);
+  return this.http
+    .post<{ ok: boolean }>(`${BASE}/api/logout`, {}, opts)
+    .pipe(tap(() => this.role$.next('guest')));
   }
   me() {
-    return this.http.get<{ user: any; consent: string | null }>(`${BASE}/api/me`, opts);
+  return this.http
+    .get<{ user: any; consent: string | null }>(`${BASE}/api/me`, opts)
+    .pipe(tap(res => this.syncRoleFromUser(res?.user)));
   }
   placeOrder(details: CheckoutDetails) {
     return this.http.post<{ order_id: number; total: number; order: any }>(`${BASE}/api/orders`, details, opts);
@@ -88,6 +125,16 @@ export class ApiService {
   }
   getOrders() {
     return this.http.get<{ orders: any[] }>(`${BASE}/api/orders`, opts);
+  }
+  getSellerOrders() {
+    return this.http.get<{ orders: any[] }>(`${BASE}/api/seller/orders`, opts);
+  }
+  updateSellerOrderStatus(orderId: number, newStatus: string) {
+    return this.http.patch<{ ok: boolean; status: string }>(
+      `${BASE}/api/seller/orders/${orderId}/status`,
+      { status: newStatus },
+      opts
+    );
   }
   seller() {
     return this.http.get<{ user: any; low_stock_alerts: boolean }>(`${BASE}/api/seller`, opts);
