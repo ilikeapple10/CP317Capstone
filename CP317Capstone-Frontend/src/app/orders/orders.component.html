@@ -33,7 +33,7 @@
           @if (order.reference) {
             <span class="order-date">Ref {{ order.reference }}</span>
           }
-          <span class="status-badge" [class]="order.status || 'errorer'">
+          <span class="order-id">
             {{ order.status || 'pending' }}
           </span>
           @if (isSeller()) {
